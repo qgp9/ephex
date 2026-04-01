@@ -57,20 +57,27 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
 Before deploying, you must create the necessary serverless resources and set up the database schema.
 
 1. **Create Cloudflare Resources**:
-   ```bash
-   npx wrangler d1 create relayx-db
-   npx wrangler r2 bucket create relayx-storage
-   ```
+   - **CLI**:
+     ```bash
+     npx wrangler d1 create relayx-db
+     npx wrangler r2 bucket create relayx-storage
+     ```
+   - **Alternative (Dashboard)**: You can also create these directly via the [Cloudflare Dashboard](https://dash.cloudflare.com/) under **Workers & Pages > D1** and **R2**.
 
 2. **Setup D1 Schema (Remote)**:
-   ```bash
-   # Execute the schema on your production database
-   npx wrangler d1 execute relayx-db --remote --file=schema.sql
-   ```
+   - **CLI**:
+     ```bash
+     npx wrangler d1 execute relayx-db --remote --file=schema.sql
+     ```
+   - **Alternative (Dashboard)**: Copy the content of `schema.sql` and run it in the D1 SQL console in the dashboard.
 
 3. **Configure Environment Variables**:
-   Go to the Cloudflare Pages Dashboard -> **Settings** -> **Environment variables** and add:
-   - `JWT_SECRET`: A long, unique random string for signing session tokens.
+   You must set `JWT_SECRET` (a long random string) for signing session tokens.
+   - **CLI**:
+     ```bash
+     npx wrangler pages secret put JWT_SECRET
+     ```
+   - **Alternative (Dashboard)**: Go to your Pages project -> **Settings** -> **Environment variables** and add `JWT_SECRET`.
 
 ---
 
