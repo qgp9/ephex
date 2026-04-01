@@ -114,7 +114,8 @@ Automatic deployment on every `git push`. **Do NOT run `wrangler pages project c
 
 1. **Push to GitHub**: Create a repository and push your code.
 2. **Create project via Cloudflare Dashboard**:
-   - Go to **Workers & Pages** -> **Create** -> **Pages** (Select the **Pages tab** at the top of the "Create application" screen).
+   - Go to **Workers & Pages** -> **Create application**.
+   - If you don't see a "Pages" tab at the top, look at the very bottom and click the link: **"Looking to deploy Pages? Get started"**.
    - Click **Connect to git**.
    - Select your repository.
    - **Project Name**: `relayx`
