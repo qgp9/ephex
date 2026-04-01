@@ -56,10 +56,16 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
 ### 1. One-time Cloudflare Setup (Required for both methods)
 Before deploying, you must create the necessary serverless resources and set up the database schema.
 
-1. **Create Cloudflare Resources**:
+1. **Create Pages Project and Resources**:
    - **CLI**:
      ```bash
+     # 1. Create the Pages project first
+     npx wrangler pages project create relayx
+
+     # 2. Create the D1 database
      npx wrangler d1 create relayx-db
+
+     # 3. Create the R2 bucket
      npx wrangler r2 bucket create relayx-storage
      ```
    - **Alternative (Dashboard)**: You can also create these directly via the [Cloudflare Dashboard](https://dash.cloudflare.com/) under **Workers & Pages > D1** and **R2**.
