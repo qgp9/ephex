@@ -119,7 +119,7 @@ Automatic deployment on every `git push`. **Do NOT run `wrangler pages project c
    - Click **Connect to git**.
    - Select your repository.
    - **Project Name**: `relayx`
-   - **Build command**: (Leave empty)
+   - **Build command**: `npm install`
    - **Deploy command**: `npx wrangler deploy`
    - Click **Save and Deploy** to complete project creation.
    - D1 and R2 bindings are automatically configured from `wrangler.toml`.
