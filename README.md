@@ -116,10 +116,12 @@ Automatic deployment on every `git push`. **Do NOT run `wrangler pages project c
 2. **Create project via Cloudflare Dashboard**:
    - Go to **Workers & Pages** -> **Create** -> **Pages** -> **Connect to git**.
    - Select your repository.
-   - **Framework Preset**: `None`.
-   - **Build Output Directory**: `public`.
+   - **Project Name**: `relayx`
+   - **Build command**: (Leave empty)
+   - **Deploy command**: `npx wrangler deploy`
+   - Click **Save and Deploy** to complete project creation.
    - D1 and R2 bindings are automatically configured from `wrangler.toml`.
-3. **Set `JWT_SECRET`**:
+3. **Set `JWT_SECRET` (After project is created)**:
    ```bash
    npx wrangler pages secret put JWT_SECRET
    ```
