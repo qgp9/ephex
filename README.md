@@ -31,7 +31,13 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
    npm install
    ```
 
-2. **Initialize Local Database**:
+2. **Setup Local Environment**:
+   ```bash
+   cp .dev.vars.example .dev.vars
+   # Edit .dev.vars and set your JWT_SECRET (e.g. openssl rand -base64 32)
+   ```
+
+3. **Initialize Local Database**:
    ```bash
    # Using mise
    mise run db:init
@@ -40,7 +46,7 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
    npx wrangler d1 execute relayx-db --local --file=schema.sql
    ```
 
-3. **Run Development Server**:
+4. **Run Development Server**:
    ```bash
    # Using mise
    mise run dev
