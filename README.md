@@ -59,78 +59,71 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
 
 ## Deployment
 
-### 1. One-time Cloudflare Setup (Required for both methods)
-Before deploying, you must create the necessary serverless resources and set up the database schema.
+> **⚠️ Choose your deployment method first!**
+> Option A (Wrangler CLI) and Option B (GitHub) create **different project types**.
+> A project created via `wrangler pages project create` is a "Direct Upload" project and **cannot** be connected to GitHub later. If you want GitHub auto-deploy, skip the CLI project creation and start from Option B.
 
-1. **Create Pages Project and Resources**:
+### Common Setup (Required for both methods)
+
+1. **Create D1 Database and R2 Bucket**:
    - **CLI**:
      ```bash
-     # 1. Create the Pages project first
-     npx wrangler pages project create relayx
-
-     # 2. Create the D1 database
      npx wrangler d1 create relayx-db
-
-     # 3. Create the R2 bucket
      npx wrangler r2 bucket create relayx-storage
      ```
-   - **Alternative (Dashboard)**: You can also create these directly via the [Cloudflare Dashboard](https://dash.cloudflare.com/):
-     - **Pages Project**: **Workers & Pages > Create > Pages > Connect to git** or **Upload assets**.
-     - **D1 & R2**: Under their respective sections in the sidebar.
+   - **Alternative (Dashboard)**: Create these via the [Cloudflare Dashboard](https://dash.cloudflare.com/) under **D1** and **R2** sections.
 
-2. **Update `wrangler.toml` (Crucial for Remote/GitHub)**:
+2. **Update `wrangler.toml`**:
    After creating the D1 database, you will get a UUID (e.g., `50e4f337-...`).
    - Run `npx wrangler d1 list` if you missed it.
-   - Open `wrangler.toml` and replace `database_id = "LOCAL"` with your **actual UUID**.
-   - **Note**: This file should be committed to Git so that Cloudflare Pages can identify your database during deployment.
+   - Open `wrangler.toml` and replace `database_id` with your **actual UUID**.
 
 3. **Setup D1 Schema (Remote)**:
    - **CLI**:
      ```bash
      npx wrangler d1 execute relayx-db --remote --file=schema.sql
      ```
-   - **Alternative (Dashboard)**: Copy the content of `schema.sql` and run it in the D1 SQL console in the dashboard.
+   - **Alternative (Dashboard)**: Copy the content of `schema.sql` and run it in the D1 SQL console.
 
-3. **Configure Environment Variables**:
-   You must set `JWT_SECRET` (a long random string) for signing session tokens.
-   - **CLI**:
-     ```bash
-     npx wrangler pages secret put JWT_SECRET
-     ```
-   - **Alternative (Dashboard)**: Go to your Pages project -> **Settings** -> **Environment variables** and add `JWT_SECRET`.
-   - **How to generate a secret?** Run this in your terminal:
-     ```bash
-     openssl rand -base64 32
-     ```
+4. **Configure `JWT_SECRET`**:
+   You must set a long random string for signing session tokens.
+   - **How to generate?** `openssl rand -base64 32`
+   - Set it via CLI or Dashboard (see per-option instructions below).
 
 ---
 
 ### Option A: Direct Deployment (Wrangler CLI)
-Fast and direct from your local machine. Perfect for testing.
+Deploy directly from your terminal. Simple and fast.
 
 ```bash
-# Using mise
-mise run deploy
+# 1. Create the Pages project (Direct Upload type)
+npx wrangler pages project create relayx
 
-# Or directly
-npx wrangler pages deploy public
+# 2. Set JWT_SECRET
+npx wrangler pages secret put JWT_SECRET
+
+# 3. Deploy
+mise run deploy
+# Or: npx wrangler pages deploy public
 ```
 
 ---
 
 ### Option B: GitHub Integration (Recommended)
-Automatic deployment whenever you `git push`.
+Automatic deployment on every `git push`. **Do NOT run `wrangler pages project create`** — the project is created through the dashboard instead.
 
 1. **Push to GitHub**: Create a repository and push your code.
-2. **Connect to Cloudflare**:
-   - Go to Cloudflare Dashboard -> **Workers & Pages** -> **Create a project** -> **Connect to git**.
+2. **Create project via Cloudflare Dashboard**:
+   - Go to **Workers & Pages** -> **Create** -> **Pages** -> **Connect to git**.
    - Select your repository.
    - **Framework Preset**: `None`.
    - **Build Output Directory**: `public`.
 3. **Bind D1 & R2**:
    - In Pages Dashboard -> **Settings** -> **Functions** -> **D1 Database Bindings**, bind `DB` to `relayx-db`.
    - In **R2 Bucket Bindings**, bind `BUCKET` to `relayx-storage`.
-4. **Redeploy**: After binding, you may need to trigger a new deployment for the changes to take effect.
+4. **Set `JWT_SECRET`**:
+   - In **Settings** -> **Environment variables**, add `JWT_SECRET`.
+5. **Redeploy**: Trigger a new deployment for bindings to take effect.
 
 ## CLI Usage (Curl)
 Capture your API Token from the **Profile** section of the dashboard.
