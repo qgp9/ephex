@@ -118,12 +118,12 @@ Automatic deployment on every `git push`. **Do NOT run `wrangler pages project c
    - Select your repository.
    - **Framework Preset**: `None`.
    - **Build Output Directory**: `public`.
-3. **Bind D1 & R2**:
-   - In Pages Dashboard -> **Settings** -> **Functions** -> **D1 Database Bindings**, bind `DB` to `relayx-db`.
-   - In **R2 Bucket Bindings**, bind `BUCKET` to `relayx-storage`.
-4. **Set `JWT_SECRET`**:
-   - In **Settings** -> **Environment variables**, add `JWT_SECRET`.
-5. **Redeploy**: Trigger a new deployment for bindings to take effect.
+   - D1 and R2 bindings are automatically configured from `wrangler.toml`.
+3. **Set `JWT_SECRET`**:
+   ```bash
+   npx wrangler pages secret put JWT_SECRET
+   ```
+   Or add it in the Dashboard under **Settings** -> **Environment variables**.
 
 ## CLI Usage (Curl)
 Capture your API Token from the **Profile** section of the dashboard.
