@@ -85,10 +85,10 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
      ```
    - **Alternative (Dashboard)**: Copy the content of `schema.sql` and run it in the D1 SQL console.
 
-4. **Configure `JWT_SECRET`**:
-   You must set a long random string for signing session tokens.
-   - **How to generate?** `openssl rand -base64 32`
-   - Set it via CLI or Dashboard (see per-option instructions below).
+4. **Generate a `JWT_SECRET` value** (you'll need it in the next step):
+   ```bash
+   openssl rand -base64 32
+   ```
 
 ---
 
