@@ -1,2 +1,5 @@
-relayx-php/data/
-relayx-php/uploads/
+node_modules/
+.wrangler/
+.DS_Store
+dist/
+.dev.vars
