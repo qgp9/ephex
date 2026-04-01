@@ -68,7 +68,9 @@ Before deploying, you must create the necessary serverless resources and set up 
      # 3. Create the R2 bucket
      npx wrangler r2 bucket create relayx-storage
      ```
-   - **Alternative (Dashboard)**: You can also create these directly via the [Cloudflare Dashboard](https://dash.cloudflare.com/) under **Workers & Pages > D1** and **R2**.
+   - **Alternative (Dashboard)**: You can also create these directly via the [Cloudflare Dashboard](https://dash.cloudflare.com/):
+     - **Pages Project**: **Workers & Pages > Create > Pages > Connect to git** or **Upload assets**.
+     - **D1 & R2**: Under their respective sections in the sidebar.
 
 2. **Update `wrangler.toml` (Crucial for Remote/GitHub)**:
    After creating the D1 database, you will get a UUID (e.g., `50e4f337-...`).
