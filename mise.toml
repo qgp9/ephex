@@ -7,7 +7,7 @@ wrangler = "latest"
 SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
 
 [tasks]
-dev = "wrangler pages dev public --compatibility-date=2024-04-01"
-"db:init" = "wrangler d1 execute relayx-db --local --file=schema.sql"
-deploy = "wrangler pages deploy public"
-"db:remote" = "wrangler d1 execute relayx-db --remote --file=schema.sql"
+dev = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler dev"
+"db:init" = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler d1 execute ephex-db --local --file=schema.sql"
+deploy = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler deploy"
+"db:remote" = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler d1 execute ephex-db --remote --file=schema.sql"

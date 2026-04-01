@@ -1,14 +1,18 @@
-name = "relayx"
-pages_build_output_dir = "public"
-compatibility_date = "2024-04-01"
+name = "ephex"
+main = "src/worker.js"
+compatibility_date = "2026-04-01"
 compatibility_flags = [ "nodejs_compat" ]
 
+[assets]
+directory = "./public"
+not_found_handling = "single-page-application"
+run_worker_first = [ "/api/*" ]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "relayx-db"
+database_name = "ephex-db"
 database_id = "50e4f337-0b5d-4965-bf35-7e6ead4ea543"
 
 [[r2_buckets]]
 binding = "BUCKET"
-bucket_name = "relayx-storage"
+bucket_name = "ephex-storage"

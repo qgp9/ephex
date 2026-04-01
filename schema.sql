@@ -1,4 +1,4 @@
--- RelayX Database Schema
+-- Ephex Database Schema
 
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

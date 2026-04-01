@@ -15,8 +15,8 @@ export async function onRequestGet({ request, env, data }) {
     const base = url.origin;
 
     images.forEach(img => {
-        // Correcting view URLs
         img.url = img.is_encrypted ? `${base}/?v=${img.id}` : `${base}/?id=${img.id}`;
+        img.raw_url = `${base}/api/raw/${img.id}`;
     });
 
     return new Response(JSON.stringify({ images }), { headers: { 'Content-Type': 'application/json' } });

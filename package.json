@@ -1,16 +1,17 @@
 {
-  "name": "relayx",
+  "name": "ephex",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Secure serverless image sharing on Cloudflare Workers",
+  "main": "src/worker.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler dev",
+    "deploy": "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler deploy",
+    "db:init": "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler d1 execute ephex-db --local --file=schema.sql",
+    "db:remote": "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler d1 execute ephex-db --remote --file=schema.sql",
+    "test": "echo \"No tests configured\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "dependencies": {
-    "jose": "^6.2.2"
-  }
+  "type": "module"
 }

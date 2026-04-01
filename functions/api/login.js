@@ -1,4 +1,4 @@
-import { SignJWT } from 'jose';
+import { signJWT } from './_jwt.js';
 import { hashPassword, verifyPassword } from './_utils.js';
 
 export async function onRequestPost({ request, env }) {
@@ -22,12 +22,8 @@ export async function onRequestPost({ request, env }) {
 
         const user = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
         if (user && await verifyPassword(password, user.password_hash)) {
-            const secret = new TextEncoder().encode(env.JWT_SECRET || 'fallback_secret_for_local_dev');
-            const token = await new SignJWT({ id: user.id, username: user.username, role: user.role })
-                .setProtectedHeader({ alg: 'HS256' })
-                .setIssuedAt()
-                .setExpirationTime('30d')
-                .sign(secret);
+            const secret = env.JWT_SECRET || 'fallback_secret_for_local_dev';
+            const token = await signJWT({ id: user.id, username: user.username, role: user.role }, secret);
 
             return new Response(JSON.stringify({ success: true }), {
                 headers: {

@@ -1,5 +1,7 @@
 node_modules/
 .wrangler/
+.tmp-config/
+.tmp-cache/
 .DS_Store
 dist/
 .dev.vars

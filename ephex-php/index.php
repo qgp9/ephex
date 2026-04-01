@@ -416,7 +416,7 @@ $baseURL = $scheme . "://" . $_SERVER['HTTP_HOST'] . "/?action=upload";
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RelayX - Secure Paste & Go</title>
+    <title>Ephex - Secure Paste & Go</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -479,7 +479,7 @@ $baseURL = $scheme . "://" . $_SERVER['HTTP_HOST'] . "/?action=upload";
 <body>
 
 <header>
-    <div class="logo">✦ RelayX</div>
+    <div class="logo">✦ Ephex</div>
     <nav id="nav-menu" style="display: none;">
         <button onclick="navigate('upload')" id="nav-upload">Dashboard</button>
         <button onclick="navigate('profile')" id="nav-profile">Profile</button>

@@ -1,4 +1,4 @@
-import { jwtVerify } from 'jose';
+import { verifyJWT } from './_jwt.js';
 
 export async function onRequest(context) {
     const { request, env } = context;
@@ -17,9 +17,11 @@ export async function onRequest(context) {
         }
     } else if (token) {
         try {
-            const secret = new TextEncoder().encode(env.JWT_SECRET || 'fallback_secret_for_local_dev');
-            const { payload } = await jwtVerify(token, secret);
-            context.data.user = payload;
+            const secret = env.JWT_SECRET || 'fallback_secret_for_local_dev';
+            const payload = await verifyJWT(token, secret);
+            if (payload) {
+                context.data.user = payload;
+            }
         } catch (e) {
             // Token invalid or expired, just proceed unauthenticated
         }
