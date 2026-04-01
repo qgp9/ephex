@@ -53,10 +53,8 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
 
 ## Deployment
 
-You can deploy RelayX using two different methods:
-
-### Option A: Direct Deployment (Wrangler CLI)
-Fast and direct from your local machine. Perfect for testing.
+### 1. One-time Cloudflare Setup (Required for both methods)
+Before deploying, you must create the necessary serverless resources and set up the database schema.
 
 1. **Create Cloudflare Resources**:
    ```bash
@@ -74,14 +72,20 @@ Fast and direct from your local machine. Perfect for testing.
    Go to the Cloudflare Pages Dashboard -> **Settings** -> **Environment variables** and add:
    - `JWT_SECRET`: A long, unique random string for signing session tokens.
 
-4. **Deploy**:
-   ```bash
-   # Using mise
-   mise run deploy
-   
-   # Or directly
-   npx wrangler pages deploy public
-   ```
+---
+
+### Option A: Direct Deployment (Wrangler CLI)
+Fast and direct from your local machine. Perfect for testing.
+
+```bash
+# Using mise
+mise run deploy
+
+# Or directly
+npx wrangler pages deploy public
+```
+
+---
 
 ### Option B: GitHub Integration (Recommended)
 Automatic deployment whenever you `git push`.
@@ -95,8 +99,7 @@ Automatic deployment whenever you `git push`.
 3. **Bind D1 & R2**:
    - In Pages Dashboard -> **Settings** -> **Functions** -> **D1 Database Bindings**, bind `DB` to `relayx-db`.
    - In **R2 Bucket Bindings**, bind `BUCKET` to `relayx-storage`.
-4. **Set Environment Variables**:
-   - Add `JWT_SECRET` in **Settings** -> **Environment variables**.
+4. **Redeploy**: After binding, you may need to trigger a new deployment for the changes to take effect.
 
 ## CLI Usage (Curl)
 Capture your API Token from the **Profile** section of the dashboard.
