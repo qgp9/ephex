@@ -53,6 +53,11 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
 
 ## Deployment
 
+You can deploy RelayX using two different methods:
+
+### Option A: Direct Deployment (Wrangler CLI)
+Fast and direct from your local machine. Perfect for testing.
+
 1. **Create Cloudflare Resources**:
    ```bash
    npx wrangler d1 create relayx-db
@@ -61,18 +66,37 @@ Built with **Cloudflare Pages**, **D1 (SQLite)**, and **R2 (Object Storage)**.
 
 2. **Setup D1 Schema (Remote)**:
    ```bash
-   # Using mise
-   mise run db:remote
+   # Execute the schema on your production database
+   npx wrangler d1 execute relayx-db --remote --file=schema.sql
    ```
 
 3. **Configure Environment Variables**:
-   Set `JWT_SECRET` in the Cloudflare Pages Dashboard (Settings > Environment Variables).
+   Go to the Cloudflare Pages Dashboard -> **Settings** -> **Environment variables** and add:
+   - `JWT_SECRET`: A long, unique random string for signing session tokens.
 
 4. **Deploy**:
    ```bash
    # Using mise
    mise run deploy
+   
+   # Or directly
+   npx wrangler pages deploy public
    ```
+
+### Option B: GitHub Integration (Recommended)
+Automatic deployment whenever you `git push`.
+
+1. **Push to GitHub**: Create a repository and push your code.
+2. **Connect to Cloudflare**:
+   - Go to Cloudflare Dashboard -> **Workers & Pages** -> **Create a project** -> **Connect to git**.
+   - Select your repository.
+   - **Framework Preset**: `None`.
+   - **Build Output Directory**: `public`.
+3. **Bind D1 & R2**:
+   - In Pages Dashboard -> **Settings** -> **Functions** -> **D1 Database Bindings**, bind `DB` to `relayx-db`.
+   - In **R2 Bucket Bindings**, bind `BUCKET` to `relayx-storage`.
+4. **Set Environment Variables**:
+   - Add `JWT_SECRET` in **Settings** -> **Environment variables**.
 
 ## CLI Usage (Curl)
 Capture your API Token from the **Profile** section of the dashboard.
