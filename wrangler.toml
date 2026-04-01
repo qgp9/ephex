@@ -8,7 +8,7 @@ JWT_SECRET = "REPLACE_THIS_WITH_A_SECURE_SECRET_LATER"
 [[d1_databases]]
 binding = "DB"
 database_name = "relayx-db"
-database_id = "LOCAL" # Placeholder for local development
+database_id = "50e4f337-0b5d-4965-bf35-7e6ead4ea543"
 
 [[r2_buckets]]
 binding = "BUCKET"

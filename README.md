@@ -64,7 +64,13 @@ Before deploying, you must create the necessary serverless resources and set up 
      ```
    - **Alternative (Dashboard)**: You can also create these directly via the [Cloudflare Dashboard](https://dash.cloudflare.com/) under **Workers & Pages > D1** and **R2**.
 
-2. **Setup D1 Schema (Remote)**:
+2. **Update `wrangler.toml` (Crucial for Remote/GitHub)**:
+   After creating the D1 database, you will get a UUID (e.g., `50e4f337-...`).
+   - Run `npx wrangler d1 list` if you missed it.
+   - Open `wrangler.toml` and replace `database_id = "LOCAL"` with your **actual UUID**.
+   - **Note**: This file should be committed to Git so that Cloudflare Pages can identify your database during deployment.
+
+3. **Setup D1 Schema (Remote)**:
    - **CLI**:
      ```bash
      npx wrangler d1 execute relayx-db --remote --file=schema.sql
@@ -78,6 +84,10 @@ Before deploying, you must create the necessary serverless resources and set up 
      npx wrangler pages secret put JWT_SECRET
      ```
    - **Alternative (Dashboard)**: Go to your Pages project -> **Settings** -> **Environment variables** and add `JWT_SECRET`.
+   - **How to generate a secret?** Run this in your terminal:
+     ```bash
+     openssl rand -base64 32
+     ```
 
 ---
 
