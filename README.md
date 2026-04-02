@@ -24,7 +24,7 @@ The deployed Worker can keep the existing `ephex` runtime/service name unless an
 ## Local Development
 1. Install tooling:
    ```bash
-   npm install
+   mise install
    ```
 2. Configure secrets:
    ```bash
@@ -33,11 +33,11 @@ The deployed Worker can keep the existing `ephex` runtime/service name unless an
    Set `JWT_SECRET` in `.dev.vars`.
 3. Initialize the local D1 database:
    ```bash
-   npm run db:init
+   mise run db:init
    ```
 4. Start the Worker locally:
    ```bash
-   npm run dev
+   mise run dev
    ```
 
 Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-cache/`.
@@ -51,7 +51,7 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
 2. Update `wrangler.toml` with your real `database_id`.
 3. Apply the schema:
    ```bash
-   npm run db:remote
+   mise run db:remote
    ```
 4. Set the JWT secret:
    ```bash
@@ -59,7 +59,7 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
    ```
 5. Deploy:
    ```bash
-   npm run deploy
+   mise run deploy
    ```
 
 ## CLI Upload
