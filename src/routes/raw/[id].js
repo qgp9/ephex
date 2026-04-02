@@ -6,7 +6,7 @@ export async function onRequestGet({ request, env, params }) {
     if (!image) return new Response('Not Found', { status: 404 });
 
     // Expiration checks
-    if (image.expires_at && new Date(image.expires_at) < new Date()) {
+    if (image.expires_at && new Date(image.expires_at).getTime() <= Date.now()) {
         await env.DB.prepare("DELETE FROM images WHERE id = ?").bind(id).run();
         // Background delete from R2? Better to run a cron later or do it now.
         await env.BUCKET.delete(image.filename);
@@ -24,7 +24,6 @@ export async function onRequestGet({ request, env, params }) {
     const object = await env.BUCKET.get(image.filename);
     if (!object) return new Response('Missing File', { status: 404 });
 
-    // Increment downloads
     await env.DB.prepare("UPDATE images SET current_downloads = current_downloads + 1 WHERE id = ?").bind(id).run();
 
     // Auto-delete if last download reached
@@ -51,7 +50,7 @@ export async function onRequestGet({ request, env, params }) {
         .replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
         .replace(/\*/g, '%2A');
     response.headers.set('Content-Disposition', `inline; filename="${safeName}"; filename*=UTF-8''${encodedName}`);
-    // Cache for 1 year
-    response.headers.set('Cache-Control', 'public, max-age=31536000');
+    // Counted downloads must not be served from browser cache.
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0');
     return response;
 }

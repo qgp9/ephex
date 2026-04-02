@@ -6,6 +6,7 @@ import { onRequestGet as listImages } from "./routes/images.js";
 import { onRequestPost as login } from "./routes/login.js";
 import { onRequestPost as logout } from "./routes/logout.js";
 import { onRequestGet as profile } from "./routes/profile.js";
+import { onRequestGet as getPreviewImage } from "./routes/preview/[id].js";
 import { onRequestGet as getRawImage } from "./routes/raw/[id].js";
 import { onRequestPost as regenerateToken } from "./routes/regenerate_token.js";
 import { onRequestPost as saveSettings } from "./routes/save_settings.js";
@@ -21,6 +22,18 @@ const routes = [
   { method: "POST", pathname: "/api/change_password", handler: changePassword },
   { method: "POST", pathname: "/api/upload", handler: upload },
   { method: "GET", pathname: "/api/images", handler: listImages },
+  {
+    method: "GET",
+    match: (pathname) => {
+      const previewMatch = pathname.match(/^\/api\/preview\/([^/]+)$/);
+      if (!previewMatch) {
+        return null;
+      }
+
+      return { id: previewMatch[1] };
+    },
+    handler: getPreviewImage,
+  },
   { method: "POST", pathname: "/api/delete_image", handler: deleteImage },
   { method: "GET", pathname: "/api/users", handler: listUsers },
   { method: "POST", pathname: "/api/create_user", handler: createUser },

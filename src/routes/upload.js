@@ -8,10 +8,16 @@ export async function onRequestPost({ request, env, data }) {
 
     const is_encrypted = formData.get('is_encrypted') === '1' ? 1 : 0;
     const userSettings = JSON.parse(user.settings || '{}');
+
+    function parseNonNegativeFloat(value, fallback = 0) {
+        const parsed = Number.parseFloat(value);
+        if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+        return parsed;
+    }
     
     // Params with fallback to user default settings
     const max_downloads = parseInt(formData.get('max_downloads') || userSettings.downloads || '0');
-    const expires_in_hours = parseInt(formData.get('expires_in_hours') || userSettings.hours || '0');
+    const expires_in_hours = parseNonNegativeFloat(formData.get('expires_in_hours') || userSettings.hours || '0');
     
     const id = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''); // 64 chars
     const ext = image.name ? image.name.split('.').pop() : 'enc';

@@ -192,7 +192,7 @@
             <div class="upload-options">
                 <div class="form-group" style="margin:0;">
                     <label>Expiration (Hours, 0=never)</label>
-                    <input type="number" id="opt-hours" min="0" onchange="saveUserSettings()">
+                    <input type="number" id="opt-hours" min="0" step="0.25" onchange="saveUserSettings()">
                 </div>
                 <div class="form-group" style="margin:0;">
                     <label>Max Downloads (0=unlim)</label>
@@ -524,6 +524,16 @@
         return `${rawImage.view_url}#${decryptKey}`;
     }
 
+    function buildRawUrl(rawImage, key = '') {
+        const rawUrl = rawImage.raw_url || rawImage.url;
+        if (!rawImage.is_encrypted) {
+            return rawUrl;
+        }
+
+        const decryptKey = key || getImageKey(rawImage.id);
+        return decryptKey ? `${rawUrl}#${decryptKey}` : rawUrl;
+    }
+
     function buildEncryptedRawCommand(rawUrl, webUrl) {
         const template = userState?.settings?.decrypt_command?.trim();
         if (!template) return rawUrl;
@@ -534,7 +544,7 @@
     }
 
     function copyRawLink(rawImage, key = '') {
-        const rawUrl = rawImage.raw_url || rawImage.url;
+        const rawUrl = buildRawUrl(rawImage, key);
         const webUrl = buildWebUrl(rawImage, key);
         if (rawImage.is_encrypted) {
             const payload = buildEncryptedRawCommand(rawUrl, webUrl);
@@ -679,7 +689,7 @@
             const created = formatCreated(img.created_at);
             const expires = formatExpires(img.expires_at);
             const filename = escapeHtml(img.original_name);
-            const rawHref = img.raw_url || img.url;
+            const rawHref = buildRawUrl(img);
             const webHref = buildWebUrl(img);
             const rawCopyValue = img.is_encrypted ? buildEncryptedRawCommand(rawHref, webHref) : rawHref;
             const securityBadge = img.is_encrypted
@@ -688,7 +698,7 @@
             const card = document.createElement('article');
             card.className = 'upload-card';
             card.innerHTML = `
-                <div class="upload-card-thumb"><img src="${img.is_encrypted ? '#' : img.raw_url}" class="thumbnail-img" style="${img.is_encrypted ? 'filter:blur(4px);' : ''}"/></div>
+                <div class="upload-card-thumb"><img src="${img.is_encrypted ? '#' : `/api/preview/${img.id}`}" class="thumbnail-img" style="${img.is_encrypted ? 'filter:blur(4px);' : ''}"/></div>
                 <div class="upload-card-main">
                     <div class="upload-card-top">
                         <div class="meta-file">
@@ -792,37 +802,61 @@
     async function showRawView(id) {
         const view = document.getElementById('encrypted-view');
         view.style.display = 'flex';
-        document.getElementById('ev-status').innerText = 'Loading image...';
+        const status = document.getElementById('ev-status');
+        const loader = document.getElementById('ev-loader');
+        const error = document.getElementById('ev-error');
         const img = document.getElementById('ev-img');
+        status.style.display = 'block';
+        status.innerText = 'Loading image...';
+        loader.style.display = 'block';
+        error.innerText = '';
+        img.style.display = 'none';
+        img.removeAttribute('src');
         img.src = `/api/raw/${id}`;
         img.onload = () => {
             img.style.display = 'block';
-            document.getElementById('ev-status').style.display = 'none';
-            document.getElementById('ev-loader').style.display = 'none';
+            status.style.display = 'none';
+            loader.style.display = 'none';
         };
         img.onerror = () => {
-           document.getElementById('ev-loader').style.display = 'none';
-           document.getElementById('ev-status').innerText = 'Error';
-           document.getElementById('ev-error').innerText = "Image not found or expired.";
+           img.style.display = 'none';
+           img.removeAttribute('src');
+           loader.style.display = 'none';
+           status.style.display = 'block';
+           status.innerText = 'Error';
+           error.innerText = "Image not found or expired.";
         };
     }
 
     async function showEncryptedView(id, key) {
         const view = document.getElementById('encrypted-view');
+        const status = document.getElementById('ev-status');
+        const loader = document.getElementById('ev-loader');
+        const error = document.getElementById('ev-error');
+        const img = document.getElementById('ev-img');
         view.style.display = 'flex';
+        status.style.display = 'block';
+        status.innerText = 'Decrypting locally...';
+        loader.style.display = 'block';
+        error.innerText = '';
+        img.style.display = 'none';
+        img.removeAttribute('src');
         try {
             const res = await fetch(`/api/raw/${id}`);
             if (!res.ok) throw new Error("Image not found");
             const blob = await res.blob();
             const decryptedBlob = await CryptoUtils.decryptFile(blob, key);
-            document.getElementById('ev-img').src = URL.createObjectURL(decryptedBlob);
-            document.getElementById('ev-img').style.display = 'block';
-            document.getElementById('ev-status').style.display = 'none';
-            document.getElementById('ev-loader').style.display = 'none';
+            img.src = URL.createObjectURL(decryptedBlob);
+            img.style.display = 'block';
+            status.style.display = 'none';
+            loader.style.display = 'none';
         } catch (e) {
-            document.getElementById('ev-loader').style.display = 'none';
-            document.getElementById('ev-status').innerText = 'Error';
-            document.getElementById('ev-error').innerText = e.message;
+            img.style.display = 'none';
+            img.removeAttribute('src');
+            loader.style.display = 'none';
+            status.style.display = 'block';
+            status.innerText = 'Error';
+            error.innerText = e.message;
         }
     }
     function closeEncryptedView() {
