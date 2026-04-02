@@ -343,8 +343,9 @@
 
     function populateProfile() {
         if (!userState) return;
-        document.getElementById('api-token').value = userState.api_token;
-        document.getElementById('api-token-code').innerText = userState.api_token;
+        const apiToken = userState.api_token || '';
+        document.getElementById('api-token').value = apiToken;
+        document.getElementById('api-token-code').innerText = apiToken;
     }
 
     async function regenerateToken() {

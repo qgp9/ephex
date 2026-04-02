@@ -4,6 +4,11 @@ export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
 
+    async function loadUserById(id) {
+        if (!id) return null;
+        return env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(id).first();
+    }
+
     // 1. Attempt to resolve identity from Cookie or API Token (Always do this)
     const cookieHeader = request.headers.get('Cookie') || '';
     const tokenCookie = cookieHeader.split('; ').find(row => row.trim().startsWith('token='));
@@ -19,8 +24,11 @@ export async function onRequest(context) {
         try {
             const secret = env.JWT_SECRET || 'fallback_secret_for_local_dev';
             const payload = await verifyJWT(token, secret);
-            if (payload) {
-                context.data.user = payload;
+            if (payload?.id) {
+                const user = await loadUserById(payload.id);
+                if (user) {
+                    context.data.user = user;
+                }
             }
         } catch (e) {
             // Token invalid or expired, just proceed unauthenticated
