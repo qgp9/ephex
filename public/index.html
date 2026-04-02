@@ -207,10 +207,11 @@
                         <label class="checkbox-container" style="color:var(--text-color); font-weight:500;">
                             <input type="radio" name="encryption-mode" value="symmetric" onchange="handleEncryptionModeChange(); saveUserSettings()"> Symmetric
                         </label>
-                        <label class="checkbox-container" style="color:var(--text-color); font-weight:500;">
+                        <label class="checkbox-container" id="opt-public-key-mode-row" style="color:var(--text-color); font-weight:500; display:none;">
                             <input type="radio" name="encryption-mode" value="public_key" onchange="handleEncryptionModeChange(); saveUserSettings()"> Public-Key
                         </label>
                     </div>
+                    <p id="upload-public-key-hint" style="display:none; color:var(--text-muted); font-size:0.82rem; margin-top:0.55rem;">To use <code>Public-Key</code> encryption, add your PEM public key in Profile.</p>
                     <p id="upload-encryption-help" style="color:var(--text-muted); font-size:0.82rem; margin-top:0.55rem;"></p>
                 </div>
             </div>
@@ -246,7 +247,7 @@
             </div>
             <div class="form-group" style="margin-top:1.5rem;">
                 <label>Public Key (PEM)</label>
-                <textarea id="opt-public-key" onchange="saveUserSettings()" placeholder='-----BEGIN PUBLIC KEY-----'></textarea>
+                <textarea id="opt-public-key" onchange="syncPublicKeyModeVisibility(); saveUserSettings()" placeholder='-----BEGIN PUBLIC KEY-----'></textarea>
                 <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Used for <code>Public-Key</code> uploads. The browser encrypts the file with a random AES key and wraps that key with this RSA public key.</p>
             </div>
         </div>
@@ -372,8 +373,29 @@
         return document.querySelector('input[name="encryption-mode"]:checked')?.value || 'plain';
     }
 
+    function hasPublicKeyConfigured() {
+        return Boolean(document.getElementById('opt-public-key')?.value.trim());
+    }
+
+    function syncPublicKeyModeVisibility() {
+        const row = document.getElementById('opt-public-key-mode-row');
+        const hint = document.getElementById('upload-public-key-hint');
+        if (!row) return;
+
+        const visible = hasPublicKeyConfigured();
+        row.style.display = visible ? 'inline-flex' : 'none';
+        if (hint) hint.style.display = visible ? 'none' : 'block';
+
+        if (!visible && getSelectedEncryptionMode() === 'public_key') {
+            setSelectedEncryptionMode('plain');
+        }
+    }
+
     function setSelectedEncryptionMode(mode) {
-        const selected = ['plain', 'symmetric', 'public_key'].includes(mode) ? mode : 'plain';
+        let selected = ['plain', 'symmetric', 'public_key'].includes(mode) ? mode : 'plain';
+        if (selected === 'public_key' && !hasPublicKeyConfigured()) {
+            selected = 'plain';
+        }
         document.querySelectorAll('input[name="encryption-mode"]').forEach((input) => {
             input.checked = input.value === selected;
         });
@@ -499,9 +521,10 @@
         if (!userState || !userState.settings) return;
         document.getElementById('opt-hours').value = userState.settings.hours ?? 1;
         document.getElementById('opt-downloads').value = userState.settings.downloads ?? 5;
-        setSelectedEncryptionMode(userState.settings.encryption_mode || (userState.settings.encrypt ? 'symmetric' : 'plain'));
         document.getElementById('opt-decrypt-command').value = userState.settings.decrypt_command || '';
         document.getElementById('opt-public-key').value = userState.settings.public_key || '';
+        syncPublicKeyModeVisibility();
+        setSelectedEncryptionMode(userState.settings.encryption_mode || (userState.settings.encrypt ? 'symmetric' : 'plain'));
     }
 
     function getUserSettingsPayload() {
