@@ -1,4 +1,3 @@
-// functions/api/logout.js
 export async function onRequestPost() {
     return new Response(JSON.stringify({ success: true }), {
         headers: {

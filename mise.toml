@@ -5,9 +5,12 @@ wrangler = "latest"
 [env]
 # in case of sharp/node-gpp error for wrangler in Mac
 SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
+# Keep Wrangler state inside the workspace for AI agents and other restricted environments.
+XDG_CONFIG_HOME = "{{cwd}}/.tmp-config"
+XDG_CACHE_HOME = "{{cwd}}/.tmp-cache"
 
 [tasks]
-dev = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler dev"
-"db:init" = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler d1 execute ephex-db --local --file=schema.sql"
-deploy = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler deploy"
-"db:remote" = "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler d1 execute ephex-db --remote --file=schema.sql"
+dev = "wrangler dev"
+"db:init" = "wrangler d1 execute ephex-db --local --file=schema.sql"
+deploy = "wrangler deploy"
+"db:remote" = "wrangler d1 execute ephex-db --remote --file=schema.sql"

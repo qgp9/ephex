@@ -1,5 +1,5 @@
 {
-  "name": "ephex",
+  "name": "ephex-server",
   "version": "1.0.0",
   "description": "Secure serverless image sharing on Cloudflare Workers",
   "main": "src/worker.js",

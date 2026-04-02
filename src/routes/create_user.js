@@ -1,4 +1,4 @@
-import { hashPassword } from './_utils.js';
+import { hashPassword } from "../lib/utils.js";
 
 export async function onRequestPost({ request, env, data }) {
     const user = data.user;

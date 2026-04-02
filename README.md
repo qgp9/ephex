@@ -1,17 +1,25 @@
-# [WIP] Ephex ✦
+# ephex-server ✦
+
+[![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-0A0A0A?style=for-the-badge)](https://openai.com/codex)
 
 Secure, serverless image sharing built on Cloudflare Workers, D1, and R2.
 
+`ephex-server` is the backend used by the `ephex` macOS app for image upload and hosted asset delivery.
+
 ## Stack
 - `public/`: static frontend assets
-- `functions/api/`: reusable API handlers
 - `src/worker.js`: Worker entry and route adapter
+- `src/routes/`: API route handlers
+- `src/middleware/`: request middleware
+- `src/lib/`: shared auth and crypto utilities
 - `ephex-php/`: archived PHP version
 - `schema.sql`: D1 schema
 - `wrangler.toml`: Cloudflare Workers configuration
 
-## Why Workers
-Cloudflare now recommends Workers Static Assets for new static, SPA, and full-stack projects. This project uses a Worker entry point for `/api/*` and serves the frontend from static assets in `public/`.
+## Naming
+
+This repository is `ephex-server`.
+The deployed Worker can keep the existing `ephex` runtime/service name unless and until a separate Cloudflare migration is needed.
 
 ## Local Development
 1. Install tooling:
@@ -32,8 +40,7 @@ Cloudflare now recommends Workers Static Assets for new static, SPA, and full-st
    npm run dev
    ```
 
-The app is served by Wrangler. The frontend comes from `public/`, and `/api/*` is handled by `src/worker.js`.
-Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-cache/` so local runs do not depend on `~/.config`.
+Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-cache/`.
 
 ## Cloudflare Setup
 1. Create a D1 database and R2 bucket:
@@ -54,11 +61,6 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
    ```bash
    npm run deploy
    ```
-
-If you already have `relayx-*` Cloudflare resources, you can keep using them by adjusting `wrangler.toml` instead of recreating them.
-
-## Auth Bootstrap
-On the first successful login, if no users exist yet and the username is `admin`, the app creates the initial admin account.
 
 ## CLI Upload
 ```bash

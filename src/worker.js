@@ -1,16 +1,16 @@
-import { onRequest as authMiddleware } from "../functions/api/_middleware.js";
-import { onRequestPost as changePassword } from "../functions/api/change_password.js";
-import { onRequestPost as createUser } from "../functions/api/create_user.js";
-import { onRequestPost as deleteImage } from "../functions/api/delete_image.js";
-import { onRequestGet as listImages } from "../functions/api/images.js";
-import { onRequestPost as login } from "../functions/api/login.js";
-import { onRequestPost as logout } from "../functions/api/logout.js";
-import { onRequestGet as profile } from "../functions/api/profile.js";
-import { onRequestGet as getRawImage } from "../functions/api/raw/[id].js";
-import { onRequestPost as regenerateToken } from "../functions/api/regenerate_token.js";
-import { onRequestPost as saveSettings } from "../functions/api/save_settings.js";
-import { onRequestPost as upload } from "../functions/api/upload.js";
-import { onRequestGet as listUsers } from "../functions/api/users.js";
+import { onRequest as authMiddleware } from "./middleware/auth.js";
+import { onRequestPost as changePassword } from "./routes/change_password.js";
+import { onRequestPost as createUser } from "./routes/create_user.js";
+import { onRequestPost as deleteImage } from "./routes/delete_image.js";
+import { onRequestGet as listImages } from "./routes/images.js";
+import { onRequestPost as login } from "./routes/login.js";
+import { onRequestPost as logout } from "./routes/logout.js";
+import { onRequestGet as profile } from "./routes/profile.js";
+import { onRequestGet as getRawImage } from "./routes/raw/[id].js";
+import { onRequestPost as regenerateToken } from "./routes/regenerate_token.js";
+import { onRequestPost as saveSettings } from "./routes/save_settings.js";
+import { onRequestPost as upload } from "./routes/upload.js";
+import { onRequestGet as listUsers } from "./routes/users.js";
 
 const routes = [
   { method: "POST", pathname: "/api/login", handler: login },

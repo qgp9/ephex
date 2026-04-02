@@ -1,4 +1,3 @@
-// functions/api/images.js
 export async function onRequestGet({ request, env, data }) {
     const user = data.user;
     if (!user) return new Response('Unauthorized', { status: 401 });

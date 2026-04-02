@@ -1,4 +1,4 @@
-import { verifyJWT } from './_jwt.js';
+import { verifyJWT } from "../lib/jwt.js";
 
 export async function onRequest(context) {
     const { request, env } = context;

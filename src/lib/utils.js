@@ -1,4 +1,3 @@
-// functions/api/_utils.js
 
 export async function hashPassword(password) {
     const encoder = new TextEncoder();

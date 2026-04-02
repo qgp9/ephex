@@ -1,5 +1,5 @@
-import { signJWT } from './_jwt.js';
-import { hashPassword, verifyPassword } from './_utils.js';
+import { signJWT } from "../lib/jwt.js";
+import { hashPassword, verifyPassword } from "../lib/utils.js";
 
 export async function onRequestPost({ request, env }) {
     try {
@@ -44,4 +44,3 @@ export async function onRequestPost({ request, env }) {
         });
     }
 }
-
