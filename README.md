@@ -45,8 +45,8 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
 ## Cloudflare Setup
 1. Create a D1 database and R2 bucket:
    ```bash
-   npx wrangler d1 create ephex-db
-   npx wrangler r2 bucket create ephex-storage
+   wrangler d1 create ephex-db
+   wrangler r2 bucket create ephex-storage
    ```
 2. Update `wrangler.toml` with your real `database_id`.
 3. Apply the schema:
@@ -55,7 +55,7 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
    ```
 4. Set the JWT secret:
    ```bash
-   npx wrangler secret put JWT_SECRET
+   wrangler secret put JWT_SECRET
    ```
 5. Deploy:
    ```bash
@@ -70,11 +70,11 @@ curl -F "image=@your_file.png" \
 ```
 
 ## CLI Download
-Download a raw image URL, or pass a viewer URL. Encrypted viewer URLs are downloaded and decrypted automatically when the `#key` fragment is present.
+Plain images can be downloaded directly with `curl -O`. Encrypted links require the helper script so the payload can be decrypted with the `#key` fragment.
 
 ```bash
-node bin/ephex-download.js "https://your-worker-domain/api/raw/<id>/image.png"
-node bin/ephex-download.js "https://your-worker-domain/?id=<id>"
-node bin/ephex-download.js "https://your-worker-domain/?v=<id>#<key>"
-node bin/ephex-download.js "https://your-worker-domain/?v=<id>#<key>" ./restored.png
+curl -O "https://your-worker-domain/img/<id>.png"
+
+node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc#<key>"
+node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc#<key>" ./restored.png
 ```
