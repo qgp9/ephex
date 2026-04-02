@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile, access } from "node:fs/promises";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -26,6 +26,15 @@ function decodeBase64Url(input) {
 
 function sanitizeFilename(name) {
   return name.replace(/[\\/:\0]/g, "_").replace(/[\r\n]/g, "").trim() || "download.bin";
+}
+
+async function pathExists(targetPath) {
+  try {
+    await access(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function parseDotEnv(contents) {
@@ -167,6 +176,30 @@ function inferFilename(fetchUrl, response, explicitOutput) {
   return path.resolve(process.cwd(), "download.bin");
 }
 
+async function resolveOutputPath(basePath, overwriteMode) {
+  if (overwriteMode === "overwrite") {
+    return basePath;
+  }
+
+  if (!(await pathExists(basePath))) {
+    return basePath;
+  }
+
+  if (overwriteMode === "fail") {
+    throw new Error(`Refusing to overwrite existing file: ${basePath}`);
+  }
+
+  const parsed = path.parse(basePath);
+  let index = 2;
+  while (true) {
+    const candidate = path.join(parsed.dir, `${parsed.name}-${index}${parsed.ext}`);
+    if (!(await pathExists(candidate))) {
+      return candidate;
+    }
+    index += 1;
+  }
+}
+
 async function main() {
   const args = [...process.argv.slice(2)];
   let privateKeyPath = "";
@@ -179,6 +212,7 @@ async function main() {
 
   privateKeyPath = expandHome(privateKeyPath || process.env.EPHEX_PRIVATE_KEY || dotEnv.EPHEX_PRIVATE_KEY || "");
   const defaultDownloadDir = expandHome(process.env.EPHEX_DOWNLOAD_DIR || dotEnv.EPHEX_DOWNLOAD_DIR || "");
+  const overwriteMode = String(process.env.EPHEX_OVERWRITE_MODE || dotEnv.EPHEX_OVERWRITE_MODE || "suffix").trim().toLowerCase();
 
   const [inputUrl, outputFile] = args;
 
@@ -207,6 +241,7 @@ async function main() {
     await mkdir(defaultDownloadDir, { recursive: true });
     outputPath = path.resolve(defaultDownloadDir, path.basename(outputPath));
   }
+  outputPath = await resolveOutputPath(outputPath, ["overwrite", "suffix", "fail"].includes(overwriteMode) ? overwriteMode : "suffix");
   const payload = Buffer.from(await response.arrayBuffer());
   const encryptionMode = response.headers.get("x-ephex-encryption-mode") || (encryptedKey ? "symmetric" : "plain");
   const wrappedKey = response.headers.get("x-ephex-encrypted-key") || "";

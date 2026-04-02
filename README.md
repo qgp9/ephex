@@ -125,6 +125,16 @@ node bin/ephex-download.js "https://your-worker-domain/img/<id>.png"
 
 If the directory does not exist, the helper creates it automatically.
 
+Filename collisions are controlled by `EPHEX_OVERWRITE_MODE`:
+
+```bash
+EPHEX_OVERWRITE_MODE=suffix
+EPHEX_OVERWRITE_MODE=overwrite
+EPHEX_OVERWRITE_MODE=fail
+```
+
+Default is `suffix`, which saves `image.png`, then `image-2.png`, `image-3.png`, and so on.
+
 ## RSA Key Generation
 Public-key uploads expect an RSA public key in PEM format.
 
