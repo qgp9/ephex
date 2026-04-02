@@ -403,8 +403,7 @@
             const data = await res.json();
             
             if (data.success) {
-                const finalUrl = isEncrypting ? `${data.url}#${finalKey}` : data.url;
-                copyText(finalUrl, "URL Copied!");
+                copyText(data.raw_url || data.url, "URL Copied!");
                 loadImages();
             } else {
                 showToast(data.error || "Upload failed", true);
@@ -428,7 +427,7 @@
                 <td><img src="${img.is_encrypted ? '#' : img.raw_url}" class="thumbnail-img" style="${img.is_encrypted ? 'filter:blur(4px);' : ''}"/></td>
                 <td><span style="color:#e2e8f0;font-size:0.8rem">${img.original_name}</span></td>
                 <td>${img.created_at}</td><td>${img.expires_at || 'Never'}</td><td>${dl}</td>
-                <td><span class="action-link" onclick="copyText('${img.url}', 'URL Copied!')">Copy Link</span><span class="action-link delete" onclick="deleteImage('${img.id}')">Delete</span></td>
+                <td><span class="action-link" onclick="copyText('${img.raw_url || img.url}', 'URL Copied!')">Copy Link</span><span class="action-link delete" onclick="deleteImage('${img.id}')">Delete</span></td>
             `;
             tbody.appendChild(tr);
         });
@@ -442,10 +441,6 @@
     }
 
     function copyText(txt, msg="Copied!") { 
-        if (txt.includes('#(Needs Key)')) {
-             showToast("Cannot copy without key", true);
-             return;
-        }
         navigator.clipboard.writeText(txt).then(() => showToast(msg)); 
     }
 

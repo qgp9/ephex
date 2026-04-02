@@ -45,6 +45,12 @@ export async function onRequestGet({ request, env, params }) {
     const response = new Response(object.body);
     object.writeHttpMetadata(response.headers);
     response.headers.set('Access-Control-Allow-Origin', '*');
+    const originalName = image.original_name || image.filename || 'image';
+    const safeName = originalName.replace(/[\r\n"]/g, '_');
+    const encodedName = encodeURIComponent(originalName)
+        .replace(/['()]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+        .replace(/\*/g, '%2A');
+    response.headers.set('Content-Disposition', `inline; filename="${safeName}"; filename*=UTF-8''${encodedName}`);
     // Cache for 1 year
     response.headers.set('Cache-Control', 'public, max-age=31536000');
     return response;

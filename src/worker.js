@@ -27,12 +27,12 @@ const routes = [
   {
     method: "GET",
     match: (pathname) => {
-      const rawMatch = pathname.match(/^\/api\/raw\/([^/]+)$/);
+      const rawMatch = pathname.match(/^\/api\/raw\/([^/]+)(?:\/([^/]+))?$/);
       if (!rawMatch) {
         return null;
       }
 
-      return { id: rawMatch[1] };
+      return { id: rawMatch[1], filename: rawMatch[2] };
     },
     handler: getRawImage,
   },

@@ -30,11 +30,15 @@ export async function onRequestPost({ request, env, data }) {
         .run();
 
     const url = new URL(request.url);
-    const finalUrl = is_encrypted ? `${url.origin}/?v=${id}` : `${url.origin}/?id=${id}`;
+    const encodedName = encodeURIComponent(image.name || 'image');
+    const rawUrl = `${url.origin}/api/raw/${id}/${encodedName}`;
+    const viewUrl = is_encrypted ? `${url.origin}/?v=${id}` : `${url.origin}/?id=${id}`;
 
     return new Response(JSON.stringify({
         success: true,
-        url: finalUrl,
+        url: rawUrl,
+        raw_url: rawUrl,
+        view_url: viewUrl,
         id: id,
         is_encrypted: is_encrypted
     }), { headers: { 'Content-Type': 'application/json' } });

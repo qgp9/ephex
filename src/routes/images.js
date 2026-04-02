@@ -14,8 +14,10 @@ export async function onRequestGet({ request, env, data }) {
     const base = url.origin;
 
     images.forEach(img => {
-        img.url = img.is_encrypted ? `${base}/?v=${img.id}` : `${base}/?id=${img.id}`;
-        img.raw_url = `${base}/api/raw/${img.id}`;
+        const encodedName = encodeURIComponent(img.original_name || 'image');
+        img.view_url = img.is_encrypted ? `${base}/?v=${img.id}` : `${base}/?id=${img.id}`;
+        img.url = `${base}/api/raw/${img.id}/${encodedName}`;
+        img.raw_url = img.url;
     });
 
     return new Response(JSON.stringify({ images }), { headers: { 'Content-Type': 'application/json' } });
