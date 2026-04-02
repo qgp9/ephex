@@ -71,11 +71,35 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
    ```
 
 ## CLI Upload
+Plain uploads can use `curl` directly:
+
 ```bash
 curl -F "image=@your_file.png" \
      -H "X-Api-Token: YOUR_TOKEN_HERE" \
      https://your-worker-domain/api/upload
 ```
+
+Encrypted uploads use the helper script:
+
+```bash
+node bin/ephex-upload.js --server https://your-worker-domain --token YOUR_TOKEN ./your_file.png
+node bin/ephex-upload.js --server https://your-worker-domain --token YOUR_TOKEN --mode symmetric ./your_file.png
+node bin/ephex-upload.js --server https://your-worker-domain --token YOUR_TOKEN --mode public-key --public-key ~/.config/ephex/public.pem ./your_file.png
+```
+
+`ephex-upload.js` prints the raw link to stdout.
+- `plain`: raw image URL
+- `symmetric`: raw URL with `#key`
+- `public-key`: raw encrypted URL
+
+Supported upload env vars:
+- `EPHEX_BASE_URL`
+- `EPHEX_API_TOKEN`
+- `EPHEX_ENCRYPTION_MODE`
+- `EPHEX_SYMMETRIC_KEY`
+- `EPHEX_PUBLIC_KEY`
+- `EPHEX_EXPIRES_HOURS`
+- `EPHEX_MAX_DOWNLOADS`
 
 ## CLI Download
 Plain images can be downloaded directly with `curl -O`.
