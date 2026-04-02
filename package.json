@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Secure serverless image sharing on Cloudflare Workers",
   "main": "src/worker.js",
+  "bin": {
+    "ephex-download": "./bin/ephex-download.js"
+  },
   "scripts": {
     "dev": "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler dev",
     "deploy": "XDG_CONFIG_HOME=$PWD/.tmp-config XDG_CACHE_HOME=$PWD/.tmp-cache wrangler deploy",

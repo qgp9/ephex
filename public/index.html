@@ -31,8 +31,9 @@
         h2 { margin-bottom: 1.5rem; font-weight: 600; color: white; }
         .form-group { margin-bottom: 1.5rem; }
         .form-group label { display: block; margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem; }
-        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; font-size: 1rem; outline: none; transition: border 0.2s; }
-        input:focus, select:focus { border-color: var(--primary); }
+        input[type="text"], input[type="password"], input[type="number"], select, textarea { width: 100%; padding: 0.75rem 1rem; border-radius: 8px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); color: white; font-size: 1rem; outline: none; transition: border 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+        textarea { min-height: 96px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
         .checkbox-container { display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--primary); font-weight: 600;}
         .checkbox-container input { width: auto; transform: scale(1.2); }
         button.btn { background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: background 0.2s, transform 0.1s; }
@@ -146,6 +147,15 @@
         </div>
 
         <div class="glass-panel">
+            <h2>Link Copy Settings</h2>
+            <div class="form-group">
+                <label>Encrypted Raw Copy Command</label>
+                <textarea id="opt-decrypt-command" onchange="saveUserSettings()" placeholder='node /path/to/ephex-download.js "%URL%"'></textarea>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Used when copying Raw Link for encrypted uploads. Use <code>%URL%</code> where the raw link should go.</p>
+            </div>
+        </div>
+
+        <div class="glass-panel" style="margin-top: 2rem;">
             <h2>Change Password</h2>
              <form onsubmit="handleChangePassword(event)">
                 <div class="form-group">
@@ -192,6 +202,7 @@
 
 <script>
     let userState = null;
+    const ENCRYPTED_KEY_STORAGE = 'ephex-encrypted-image-keys';
     
     const CryptoUtils = {
         arrayBufferToBase64(buffer) {
@@ -239,6 +250,7 @@
         const rawId = urlParams.get('id');
 
         if (viewId && hash) {
+            setImageKey(viewId, hash);
             showEncryptedView(viewId, hash);
         } else if (rawId) {
             showRawView(rawId);
@@ -291,11 +303,85 @@
         if (sectionId === 'profile') populateProfile();
     }
 
+    function getImageKeyStore() {
+        try {
+            return JSON.parse(window.localStorage.getItem(ENCRYPTED_KEY_STORAGE) || '{}');
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveImageKeyStore(store) {
+        window.localStorage.setItem(ENCRYPTED_KEY_STORAGE, JSON.stringify(store));
+    }
+
+    function setImageKey(id, key) {
+        if (!id || !key) return;
+        const store = getImageKeyStore();
+        store[id] = key;
+        saveImageKeyStore(store);
+    }
+
+    function getImageKey(id) {
+        return getImageKeyStore()[id] || '';
+    }
+
     function syncUIFromSettings() {
         if (!userState || !userState.settings) return;
         document.getElementById('opt-hours').value = userState.settings.hours ?? 1;
         document.getElementById('opt-downloads').value = userState.settings.downloads ?? 5;
         document.getElementById('opt-encrypt').checked = !!userState.settings.encrypt;
+        document.getElementById('opt-decrypt-command').value = userState.settings.decrypt_command || '';
+    }
+
+    function getUserSettingsPayload() {
+        return {
+            hours: document.getElementById('opt-hours').value,
+            downloads: document.getElementById('opt-downloads').value,
+            encrypt: document.getElementById('opt-encrypt').checked,
+            decrypt_command: document.getElementById('opt-decrypt-command').value.trim()
+        };
+    }
+
+    function buildWebUrl(rawImage, key = '') {
+        if (!rawImage.is_encrypted) {
+            return rawImage.view_url || rawImage.raw_url || rawImage.url;
+        }
+
+        const decryptKey = key || getImageKey(rawImage.id);
+        if (!decryptKey) return '';
+        return `${rawImage.view_url}#${decryptKey}`;
+    }
+
+    function buildEncryptedRawCommand(rawUrl, webUrl) {
+        const template = userState?.settings?.decrypt_command?.trim();
+        if (!template) return rawUrl;
+        return template
+            .replace(/%URL%/g, rawUrl)
+            .replace(/%RAW_URL%/g, rawUrl)
+            .replace(/%WEB_URL%/g, webUrl || '');
+    }
+
+    function copyRawLink(rawImage, key = '') {
+        const rawUrl = rawImage.raw_url || rawImage.url;
+        const webUrl = buildWebUrl(rawImage, key);
+        if (rawImage.is_encrypted) {
+            const payload = buildEncryptedRawCommand(rawUrl, webUrl);
+            const usedTemplate = payload !== rawUrl;
+            copyText(payload, usedTemplate ? "Decrypt command copied!" : "Encrypted raw link copied!");
+            return;
+        }
+
+        copyText(rawUrl, "Raw link copied!");
+    }
+
+    function copyWebLink(rawImage, key = '') {
+        const webUrl = buildWebUrl(rawImage, key);
+        if (!webUrl) {
+            showToast("Missing local decryption key for this image", true);
+            return;
+        }
+        copyText(webUrl, "Web link copied!");
     }
 
     function setupAuthenticated() {
@@ -331,11 +417,7 @@
 
     async function saveUserSettings() {
         if (!userState) return;
-        userState.settings = {
-            hours: document.getElementById('opt-hours').value,
-            downloads: document.getElementById('opt-downloads').value,
-            encrypt: document.getElementById('opt-encrypt').checked
-        };
+        userState.settings = getUserSettingsPayload();
         const fd = new FormData(); fd.append('settings', JSON.stringify(userState.settings));
         await fetch('/api/save_settings', { method: 'POST', body: fd });
         showToast("Settings auto-saved");
@@ -403,7 +485,8 @@
             const data = await res.json();
             
             if (data.success) {
-                copyText(data.raw_url || data.url, "URL Copied!");
+                if (isEncrypting && finalKey) setImageKey(data.id, finalKey);
+                copyRawLink(data, finalKey);
                 loadImages();
             } else {
                 showToast(data.error || "Upload failed", true);
@@ -422,13 +505,21 @@
         tbody.innerHTML = '';
         data.images.forEach(img => {
             const dl = img.max_downloads > 0 ? `${img.current_downloads}/${img.max_downloads}` : `${img.current_downloads} (unlim)`;
+            const webLinkLabel = img.is_encrypted && !getImageKey(img.id) ? 'Copy Web Link (No Key)' : 'Copy Web Link';
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><img src="${img.is_encrypted ? '#' : img.raw_url}" class="thumbnail-img" style="${img.is_encrypted ? 'filter:blur(4px);' : ''}"/></td>
                 <td><span style="color:#e2e8f0;font-size:0.8rem">${img.original_name}</span></td>
                 <td>${img.created_at}</td><td>${img.expires_at || 'Never'}</td><td>${dl}</td>
-                <td><span class="action-link" onclick="copyText('${img.raw_url || img.url}', 'URL Copied!')">Copy Link</span><span class="action-link delete" onclick="deleteImage('${img.id}')">Delete</span></td>
+                <td>
+                    <span class="action-link action-copy-raw">Copy Raw Link</span>
+                    <span class="action-link action-copy-web">${webLinkLabel}</span>
+                    <span class="action-link delete action-delete">Delete</span>
+                </td>
             `;
+            tr.querySelector('.action-copy-raw').addEventListener('click', () => copyRawLink(img));
+            tr.querySelector('.action-copy-web').addEventListener('click', () => copyWebLink(img));
+            tr.querySelector('.action-delete').addEventListener('click', () => deleteImage(img.id));
             tbody.appendChild(tr);
         });
     }

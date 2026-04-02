@@ -68,3 +68,13 @@ curl -F "image=@your_file.png" \
      -H "X-Api-Token: YOUR_TOKEN_HERE" \
      https://your-worker-domain/api/upload
 ```
+
+## CLI Download
+Download a raw image URL, or pass a viewer URL. Encrypted viewer URLs are downloaded and decrypted automatically when the `#key` fragment is present.
+
+```bash
+node bin/ephex-download.js "https://your-worker-domain/api/raw/<id>/image.png"
+node bin/ephex-download.js "https://your-worker-domain/?id=<id>"
+node bin/ephex-download.js "https://your-worker-domain/?v=<id>#<key>"
+node bin/ephex-download.js "https://your-worker-domain/?v=<id>#<key>" ./restored.png
+```
