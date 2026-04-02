@@ -1,10 +1,14 @@
 export async function onRequestGet({ data }) {
     if (!data.user) return new Response(JSON.stringify({ authenticated: false }), { headers: { 'Content-Type': 'application/json' } });
 
-    let settings = { hours: 1, downloads: 5, encrypt: false, decrypt_command: '' };
+    let settings = { hours: 1, downloads: 5, encryption_mode: 'plain', decrypt_command: '', public_key: '' };
     if (data.user.settings) {
         try {
-            settings = { ...settings, ...JSON.parse(data.user.settings) };
+            const parsed = JSON.parse(data.user.settings);
+            settings = { ...settings, ...parsed };
+            if (parsed.encrypt && !parsed.encryption_mode) {
+                settings.encryption_mode = 'symmetric';
+            }
         } catch (e) {
             // Fall back to defaults if stored JSON is invalid.
         }

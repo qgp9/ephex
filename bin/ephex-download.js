@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import fs from "node:fs";
 import path from "node:path";
-import { webcrypto } from "node:crypto";
+import { createPrivateKey, privateDecrypt, constants, webcrypto } from "node:crypto";
 
 function printUsage() {
-  console.error("Usage: ephex-download <url> [output-file]");
-  console.error("Supports raw links, viewer links, and encrypted viewer links.");
+  console.error("Usage: ephex-download [--private-key /path/to/private.pem] <url> [output-file]");
+  console.error("Supports plain, symmetric-encrypted, and public-key-encrypted raw links.");
 }
 
 function decodeBase64Url(input) {
@@ -17,6 +18,30 @@ function decodeBase64Url(input) {
 
 function sanitizeFilename(name) {
   return name.replace(/[\\/:\0]/g, "_").replace(/[\r\n]/g, "").trim() || "download.bin";
+}
+
+function parseDotEnv(contents) {
+  const env = {};
+  for (const line of contents.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    env[key] = value;
+  }
+  return env;
+}
+
+function loadDotEnvPrivateKeyPath() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (!fs.existsSync(envPath)) return "";
+  const parsed = parseDotEnv(fs.readFileSync(envPath, "utf8"));
+  return parsed.EPHEX_PRIVATE_KEY || "";
 }
 
 function parseContentDisposition(header) {
@@ -82,6 +107,31 @@ async function decryptPayload(buffer, keyBase64Url) {
   return Buffer.from(decrypted);
 }
 
+async function decryptPayloadWithPrivateKey(buffer, wrappedKeyBase64Url, privateKeyPath, keyAlgorithm) {
+  if (!wrappedKeyBase64Url) {
+    throw new Error("Encrypted payload is missing the wrapped AES key");
+  }
+
+  if (!privateKeyPath) {
+    throw new Error("Public-key encrypted payload requires --private-key");
+  }
+
+  const pem = await readFile(privateKeyPath, "utf8");
+  const privateKey = createPrivateKey(pem);
+  const wrappedKey = decodeBase64Url(wrappedKeyBase64Url);
+  const oaepHash = keyAlgorithm === "RSA-OAEP-256" ? "sha256" : "sha1";
+  const rawKey = privateDecrypt(
+    {
+      key: privateKey,
+      padding: constants.RSA_PKCS1_OAEP_PADDING,
+      oaepHash,
+    },
+    wrappedKey
+  );
+
+  return decryptPayload(buffer, rawKey.toString("base64url"));
+}
+
 function inferFilename(fetchUrl, response, explicitOutput) {
   if (explicitOutput) {
     return explicitOutput;
@@ -101,7 +151,17 @@ function inferFilename(fetchUrl, response, explicitOutput) {
 }
 
 async function main() {
-  const [inputUrl, outputFile] = process.argv.slice(2);
+  const args = [...process.argv.slice(2)];
+  let privateKeyPath = "";
+
+  if (args[0] === "--private-key") {
+    privateKeyPath = args[1] || "";
+    args.splice(0, 2);
+  }
+
+  privateKeyPath = privateKeyPath || process.env.EPHEX_PRIVATE_KEY || loadDotEnvPrivateKeyPath();
+
+  const [inputUrl, outputFile] = args;
 
   if (!inputUrl || inputUrl === "--help" || inputUrl === "-h") {
     printUsage();
@@ -116,8 +176,16 @@ async function main() {
 
   const outputPath = inferFilename(fetchUrl, response, outputFile ? path.resolve(process.cwd(), outputFile) : null);
   const payload = Buffer.from(await response.arrayBuffer());
-  const isEncrypted = Boolean(encryptedKey);
-  const finalData = isEncrypted ? await decryptPayload(payload, encryptedKey) : payload;
+  const encryptionMode = response.headers.get("x-ephex-encryption-mode") || (encryptedKey ? "symmetric" : "plain");
+  const wrappedKey = response.headers.get("x-ephex-encrypted-key") || "";
+  const keyAlgorithm = response.headers.get("x-ephex-key-algorithm") || "";
+  let finalData = payload;
+
+  if (encryptionMode === "symmetric") {
+    finalData = await decryptPayload(payload, encryptedKey);
+  } else if (encryptionMode === "public_key") {
+    finalData = await decryptPayloadWithPrivateKey(payload, wrappedKey, privateKeyPath, keyAlgorithm);
+  }
 
   await writeFile(outputPath, finalData);
   console.log(outputPath);

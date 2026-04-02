@@ -12,5 +12,7 @@ XDG_CACHE_HOME = "{{cwd}}/.tmp-cache"
 [tasks]
 dev = "wrangler dev"
 "db:init" = "wrangler d1 execute ephex-db --local --file=schema.sql"
+"db:migrate-local" = "wrangler d1 execute ephex-db --local --file=migrations/20260402_encryption_modes.sql"
 deploy = "wrangler deploy"
 "db:remote" = "wrangler d1 execute ephex-db --remote --file=schema.sql"
+"db:migrate-remote" = "wrangler d1 execute ephex-db --remote --file=migrations/20260402_encryption_modes.sql"

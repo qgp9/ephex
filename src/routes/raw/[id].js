@@ -4,6 +4,7 @@ export async function onRequestGet({ request, env, params }) {
 
     const image = await env.DB.prepare("SELECT * FROM images WHERE id = ?").bind(id).first();
     if (!image) return new Response('Not Found', { status: 404 });
+    const encryptionMode = image.encryption_mode || (image.is_encrypted ? 'symmetric' : 'plain');
 
     // Expiration checks
     if (image.expires_at && new Date(image.expires_at).getTime() <= Date.now()) {
@@ -44,6 +45,13 @@ export async function onRequestGet({ request, env, params }) {
     const response = new Response(object.body);
     object.writeHttpMetadata(response.headers);
     response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('X-Ephex-Encryption-Mode', encryptionMode);
+    if (image.encrypted_key) {
+        response.headers.set('X-Ephex-Encrypted-Key', image.encrypted_key);
+    }
+    if (image.key_algorithm) {
+        response.headers.set('X-Ephex-Key-Algorithm', image.key_algorithm);
+    }
     const originalName = image.original_name || image.filename || 'image';
     const safeName = originalName.replace(/[\r\n"]/g, '_');
     const encodedName = encodeURIComponent(originalName)

@@ -198,9 +198,21 @@
                     <label>Max Downloads (0=unlim)</label>
                     <input type="number" id="opt-downloads" min="0" onchange="saveUserSettings()">
                 </div>
-                <label class="checkbox-container">
-                    <input type="checkbox" id="opt-encrypt" onchange="saveUserSettings()"> Client-Side Encrypt (Anchor)
-                </label>
+                <div class="form-group" style="margin:0; grid-column: 1 / -1;">
+                    <label>Encryption Mode</label>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:0.25rem;">
+                        <label class="checkbox-container" style="color:var(--text-color); font-weight:500;">
+                            <input type="radio" name="encryption-mode" value="plain" onchange="handleEncryptionModeChange(); saveUserSettings()"> Plain
+                        </label>
+                        <label class="checkbox-container" style="color:var(--text-color); font-weight:500;">
+                            <input type="radio" name="encryption-mode" value="symmetric" onchange="handleEncryptionModeChange(); saveUserSettings()"> Symmetric
+                        </label>
+                        <label class="checkbox-container" style="color:var(--text-color); font-weight:500;">
+                            <input type="radio" name="encryption-mode" value="public_key" onchange="handleEncryptionModeChange(); saveUserSettings()"> Public-Key
+                        </label>
+                    </div>
+                    <p id="upload-encryption-help" style="color:var(--text-muted); font-size:0.82rem; margin-top:0.55rem;"></p>
+                </div>
             </div>
             
             <div class="loader" id="upload-loader"></div>
@@ -230,7 +242,12 @@
             <div class="form-group">
                 <label>Encrypted Raw Copy Command</label>
                 <textarea id="opt-decrypt-command" onchange="saveUserSettings()" placeholder='node /path/to/ephex-download.js "%URL%"'></textarea>
-                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Used when copying Raw Link for encrypted uploads. Use <code>%URL%</code> where the raw link should go.</p>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Used when copying Raw Link for encrypted uploads. Use <code>%URL%</code> where the raw link should go. Public-key mode can include <code>--private-key /path/to/key.pem</code> here.</p>
+            </div>
+            <div class="form-group" style="margin-top:1.5rem;">
+                <label>Public Key (PEM)</label>
+                <textarea id="opt-public-key" onchange="saveUserSettings()" placeholder='-----BEGIN PUBLIC KEY-----'></textarea>
+                <p style="color:var(--text-muted); font-size:0.85rem; margin-top:0.5rem;">Used for <code>Public-Key</code> uploads. The browser encrypts the file with a random AES key and wraps that key with this RSA public key.</p>
             </div>
         </div>
 
@@ -297,6 +314,14 @@
             for (let i = 0; i < len; i++) { bytes[i] = binary_string.charCodeAt(i); }
             return bytes.buffer;
         },
+        pemToArrayBuffer(pem) {
+            const normalized = String(pem || '')
+                .replace(/-----BEGIN PUBLIC KEY-----/g, '')
+                .replace(/-----END PUBLIC KEY-----/g, '')
+                .replace(/\s+/g, '');
+            if (!normalized) throw new Error("Public key is empty");
+            return this.base64ToArrayBuffer(normalized.replace(/\+/g, '-').replace(/\//g, '_'));
+        },
         async encryptFile(file) {
             const key = await window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
             const exportedKey = await window.crypto.subtle.exportKey("raw", key);
@@ -306,6 +331,29 @@
             const resultBuffer = new Uint8Array(iv.length + encryptedBuffer.byteLength);
             resultBuffer.set(iv, 0); resultBuffer.set(new Uint8Array(encryptedBuffer), iv.length);
             return { encryptedBlob: new Blob([resultBuffer], { type: "application/octet-stream" }), keyBase64 };
+        },
+        async encryptFileForPublicKey(file, publicKeyPem) {
+            const key = await window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]);
+            const exportedKey = await window.crypto.subtle.exportKey("raw", key);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encryptedBuffer = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, await file.arrayBuffer());
+            const resultBuffer = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+            resultBuffer.set(iv, 0);
+            resultBuffer.set(new Uint8Array(encryptedBuffer), iv.length);
+
+            const importedKey = await window.crypto.subtle.importKey(
+                "spki",
+                this.pemToArrayBuffer(publicKeyPem),
+                { name: "RSA-OAEP", hash: "SHA-256" },
+                false,
+                ["encrypt"]
+            );
+            const wrappedKey = await window.crypto.subtle.encrypt({ name: "RSA-OAEP" }, importedKey, exportedKey);
+            return {
+                encryptedBlob: new Blob([resultBuffer], { type: "application/octet-stream" }),
+                wrappedKeyBase64: this.arrayBufferToBase64(wrappedKey),
+                keyAlgorithm: "RSA-OAEP-256"
+            };
         },
         async decryptFile(encryptedBlob, keyBase64) {
             try {
@@ -319,6 +367,48 @@
             } catch(e) { throw new Error("Decryption failed. Invalid key or corrupted data."); }
         }
     };
+
+    function getSelectedEncryptionMode() {
+        return document.querySelector('input[name="encryption-mode"]:checked')?.value || 'plain';
+    }
+
+    function setSelectedEncryptionMode(mode) {
+        const selected = ['plain', 'symmetric', 'public_key'].includes(mode) ? mode : 'plain';
+        document.querySelectorAll('input[name="encryption-mode"]').forEach((input) => {
+            input.checked = input.value === selected;
+        });
+        handleEncryptionModeChange();
+    }
+
+    function isSymmetricImage(image) {
+        return (image.encryption_mode || (image.is_encrypted ? 'symmetric' : 'plain')) === 'symmetric';
+    }
+
+    function isPublicKeyImage(image) {
+        return (image.encryption_mode || (image.is_encrypted ? 'symmetric' : 'plain')) === 'public_key';
+    }
+
+    function isEncryptedImage(image) {
+        return !['', 'plain', null, undefined].includes(image.encryption_mode) || !!image.is_encrypted;
+    }
+
+    function handleEncryptionModeChange() {
+        const mode = getSelectedEncryptionMode();
+        const help = document.getElementById('upload-encryption-help');
+        if (!help) return;
+
+        if (mode === 'plain') {
+            help.textContent = 'Anyone with the link can open the image. The server stores the original file.';
+            return;
+        }
+
+        if (mode === 'symmetric') {
+            help.textContent = 'A secret key is stored in the link hash. Raw links need the helper script to decrypt.';
+            return;
+        }
+
+        help.textContent = 'The browser encrypts the file with a random AES key and wraps that key with your uploaded RSA public key. Only raw download is available.';
+    }
 
     document.addEventListener('DOMContentLoaded', async () => {
         await checkAuth();
@@ -409,16 +499,18 @@
         if (!userState || !userState.settings) return;
         document.getElementById('opt-hours').value = userState.settings.hours ?? 1;
         document.getElementById('opt-downloads').value = userState.settings.downloads ?? 5;
-        document.getElementById('opt-encrypt').checked = !!userState.settings.encrypt;
+        setSelectedEncryptionMode(userState.settings.encryption_mode || (userState.settings.encrypt ? 'symmetric' : 'plain'));
         document.getElementById('opt-decrypt-command').value = userState.settings.decrypt_command || '';
+        document.getElementById('opt-public-key').value = userState.settings.public_key || '';
     }
 
     function getUserSettingsPayload() {
         return {
             hours: document.getElementById('opt-hours').value,
             downloads: document.getElementById('opt-downloads').value,
-            encrypt: document.getElementById('opt-encrypt').checked,
-            decrypt_command: document.getElementById('opt-decrypt-command').value.trim()
+            encryption_mode: getSelectedEncryptionMode(),
+            decrypt_command: document.getElementById('opt-decrypt-command').value.trim(),
+            public_key: document.getElementById('opt-public-key').value.trim()
         };
     }
 
@@ -431,8 +523,20 @@
             .replace(/'/g, '&#39;');
     }
 
+    function parseServerDate(value) {
+        if (!value) return new Date(NaN);
+        if (value instanceof Date) return value;
+        if (typeof value !== 'string') return new Date(value);
+
+        const normalized = value.includes('T')
+            ? value
+            : value.replace(' ', 'T');
+        const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/.test(normalized);
+        return new Date(hasTimezone ? normalized : `${normalized}Z`);
+    }
+
     function formatDateParts(value) {
-        const date = new Date(value);
+        const date = parseServerDate(value);
         if (Number.isNaN(date.getTime())) {
             return { date: value || '', time: '' };
         }
@@ -445,7 +549,7 @@
     }
 
     function formatRelativeTime(dateValue) {
-        const date = new Date(dateValue);
+        const date = parseServerDate(dateValue);
         if (Number.isNaN(date.getTime())) return 'Unknown';
 
         const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000);
@@ -482,7 +586,7 @@
     function formatExpires(value) {
         if (!value) return { primary: 'Never', secondary: '' };
 
-        const expiresAt = new Date(value);
+        const expiresAt = parseServerDate(value);
         if (Number.isNaN(expiresAt.getTime())) {
             return { primary: value, secondary: '' };
         }
@@ -515,7 +619,11 @@
     }
 
     function buildWebUrl(rawImage, key = '') {
-        if (!rawImage.is_encrypted) {
+        if (isPublicKeyImage(rawImage)) {
+            return '';
+        }
+
+        if (!isSymmetricImage(rawImage)) {
             return rawImage.view_url || rawImage.raw_url || rawImage.url;
         }
 
@@ -526,7 +634,7 @@
 
     function buildRawUrl(rawImage, key = '') {
         const rawUrl = rawImage.raw_url || rawImage.url;
-        if (!rawImage.is_encrypted) {
+        if (!isSymmetricImage(rawImage)) {
             return rawUrl;
         }
 
@@ -546,7 +654,7 @@
     function copyRawLink(rawImage, key = '') {
         const rawUrl = buildRawUrl(rawImage, key);
         const webUrl = buildWebUrl(rawImage, key);
-        if (rawImage.is_encrypted) {
+        if (isEncryptedImage(rawImage)) {
             const payload = buildEncryptedRawCommand(rawUrl, webUrl);
             const usedTemplate = payload !== rawUrl;
             copyText(payload, usedTemplate ? "Decrypt command copied!" : "Encrypted raw link copied!");
@@ -647,33 +755,51 @@
         document.getElementById('upload-loader').style.display = 'block';
 
         try {
-            const isEncrypting = document.getElementById('opt-encrypt').checked;
-            let uploadBlob = file, finalKey = '';
-            
-            if (isEncrypting) {
+            const encryptionMode = getSelectedEncryptionMode();
+            let uploadBlob = file;
+            let finalKey = '';
+            let wrappedKey = '';
+            let keyAlgorithm = '';
+
+            if (encryptionMode === 'symmetric') {
                 const encResult = await CryptoUtils.encryptFile(file);
-                uploadBlob = encResult.encryptedBlob; finalKey = encResult.keyBase64;
+                uploadBlob = encResult.encryptedBlob;
+                finalKey = encResult.keyBase64;
                 showToast("Image encrypted locally");
+            } else if (encryptionMode === 'public_key') {
+                const publicKeyPem = userState?.settings?.public_key?.trim() || '';
+                if (!publicKeyPem) {
+                    throw new Error("Add a public key in Profile before using Public-Key mode");
+                }
+                const encResult = await CryptoUtils.encryptFileForPublicKey(file, publicKeyPem);
+                uploadBlob = encResult.encryptedBlob;
+                wrappedKey = encResult.wrappedKeyBase64;
+                keyAlgorithm = encResult.keyAlgorithm;
+                showToast("Image encrypted for your public key");
             }
 
             const fd = new FormData();
             fd.append('image', uploadBlob, file.name);
             fd.append('max_downloads', document.getElementById('opt-downloads').value);
             fd.append('expires_in_hours', document.getElementById('opt-hours').value);
-            fd.append('is_encrypted', isEncrypting ? '1' : '0');
+            fd.append('encryption_mode', encryptionMode);
+            fd.append('is_encrypted', encryptionMode === 'plain' ? '0' : '1');
+            if (wrappedKey) fd.append('encrypted_key', wrappedKey);
+            if (keyAlgorithm) fd.append('key_algorithm', keyAlgorithm);
 
             const res = await fetch('/api/upload', { method: 'POST', body: fd });
-            const data = await res.json();
+            const data = await parseJsonResponse(res);
             
             if (data.success) {
-                if (isEncrypting && finalKey) setImageKey(data.id, finalKey);
+                if (encryptionMode === 'symmetric' && finalKey) setImageKey(data.id, finalKey);
                 copyRawLink(data, finalKey);
                 loadImages();
             } else {
                 showToast(data.error || "Upload failed", true);
             }
         } catch (e) {
-            console.error(e); showToast("Upload error", true);
+            console.error(e);
+            showToast(e?.message || "Upload error", true);
         } finally {
             document.getElementById('upload-loader').style.display = 'none';
         }
@@ -691,14 +817,16 @@
             const filename = escapeHtml(img.original_name);
             const rawHref = buildRawUrl(img);
             const webHref = buildWebUrl(img);
-            const rawCopyValue = img.is_encrypted ? buildEncryptedRawCommand(rawHref, webHref) : rawHref;
-            const securityBadge = img.is_encrypted
-                ? '<span class="status-badge encrypted">Encrypted</span>'
-                : '<span class="status-badge plain">Plain</span>';
+            const rawCopyValue = isEncryptedImage(img) ? buildEncryptedRawCommand(rawHref, webHref) : rawHref;
+            const securityBadge = isPublicKeyImage(img)
+                ? '<span class="status-badge encrypted">Public-Key</span>'
+                : (isSymmetricImage(img)
+                    ? '<span class="status-badge encrypted">Symmetric</span>'
+                    : '<span class="status-badge plain">Plain</span>');
             const card = document.createElement('article');
             card.className = 'upload-card';
             card.innerHTML = `
-                <div class="upload-card-thumb"><img src="${img.is_encrypted ? '#' : `/api/preview/${img.id}`}" class="thumbnail-img" style="${img.is_encrypted ? 'filter:blur(4px);' : ''}"/></div>
+                <div class="upload-card-thumb"><img src="${isEncryptedImage(img) ? '#' : `/api/preview/${img.id}`}" class="thumbnail-img" style="${isEncryptedImage(img) ? 'filter:blur(4px);' : ''}"/></div>
                 <div class="upload-card-main">
                     <div class="upload-card-top">
                         <div class="meta-file">
@@ -729,8 +857,8 @@
                         </div>
                     </div>
                     <div class="upload-card-links">
-                        ${renderUrlRow({ kind: 'Raw', href: rawHref, inputValue: rawHref, copyValue: rawCopyValue, copyMessage: img.is_encrypted && rawCopyValue !== rawHref ? 'Decrypt command copied!' : 'Raw link copied!' })}
-                        ${renderUrlRow({ kind: 'Web', href: webHref, inputValue: webHref || '', copyValue: webHref, copyMessage: 'Web link copied!', disabled: !webHref, statusText: !webHref ? 'Missing key' : '' })}
+                        ${renderUrlRow({ kind: 'Raw', href: rawHref, inputValue: rawHref, copyValue: rawCopyValue, copyMessage: isEncryptedImage(img) && rawCopyValue !== rawHref ? 'Decrypt command copied!' : 'Raw link copied!' })}
+                        ${isPublicKeyImage(img) ? '' : renderUrlRow({ kind: 'Web', href: webHref, inputValue: webHref || '', copyValue: webHref, copyMessage: 'Web link copied!', disabled: !webHref, statusText: !webHref ? 'Missing key' : '' })}
                     </div>
                 </div>
             `;
@@ -751,6 +879,17 @@
 
     function copyText(txt, msg="Copied!") { 
         navigator.clipboard.writeText(txt).then(() => showToast(msg)); 
+    }
+
+    async function parseJsonResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+            return response.json();
+        }
+
+        const text = await response.text();
+        const stripped = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        throw new Error(stripped || `Unexpected ${response.status} response`);
     }
 
     function renderUrlRow({ kind, href, inputValue, copyValue, copyMessage, disabled = false, statusText = '' }) {

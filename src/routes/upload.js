@@ -6,8 +6,21 @@ export async function onRequestPost({ request, env, data }) {
     const image = formData.get('image');
     if (!image) return new Response('No image provided', { status: 400 });
 
-    const is_encrypted = formData.get('is_encrypted') === '1' ? 1 : 0;
+    const requestedMode = String(formData.get('encryption_mode') || '').trim();
+    const encryption_mode = ['plain', 'symmetric', 'public_key'].includes(requestedMode)
+        ? requestedMode
+        : (formData.get('is_encrypted') === '1' ? 'symmetric' : 'plain');
+    const is_encrypted = encryption_mode === 'plain' ? 0 : 1;
+    const encrypted_key = formData.get('encrypted_key');
+    const key_algorithm = formData.get('key_algorithm');
     const userSettings = JSON.parse(user.settings || '{}');
+
+    if (encryption_mode === 'public_key' && !encrypted_key) {
+        return new Response(JSON.stringify({ success: false, error: 'Missing wrapped encryption key' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
 
     function parseNonNegativeFloat(value, fallback = 0) {
         const parsed = Number.parseFloat(value);
@@ -31,14 +44,27 @@ export async function onRequestPost({ request, env, data }) {
     const expires_at = expires_in_hours > 0 ? new Date(Date.now() + expires_in_hours * 3600000).toISOString() : null;
 
     // Store in D1
-    await env.DB.prepare("INSERT INTO images (id, filename, original_name, user_id, expires_at, max_downloads, is_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?)")
-        .bind(id, filename, image.name || 'paste', user.id, expires_at, max_downloads, is_encrypted)
+    await env.DB.prepare("INSERT INTO images (id, filename, original_name, user_id, expires_at, max_downloads, is_encrypted, encryption_mode, encrypted_key, key_algorithm) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(
+            id,
+            filename,
+            image.name || 'paste',
+            user.id,
+            expires_at,
+            max_downloads,
+            is_encrypted,
+            encryption_mode,
+            encryption_mode === 'public_key' ? (encrypted_key || null) : null,
+            encryption_mode === 'public_key' ? (key_algorithm || 'RSA-OAEP-256') : null
+        )
         .run();
 
     const url = new URL(request.url);
     const rawExt = is_encrypted ? 'enc' : ext.toLowerCase();
     const rawUrl = `${url.origin}/img/${id}.${rawExt}`;
-    const viewUrl = is_encrypted ? `${url.origin}/?v=${id}` : `${url.origin}/?id=${id}`;
+    const viewUrl = encryption_mode === 'plain'
+        ? `${url.origin}/?id=${id}`
+        : (encryption_mode === 'symmetric' ? `${url.origin}/?v=${id}` : '');
 
     return new Response(JSON.stringify({
         success: true,
@@ -46,6 +72,7 @@ export async function onRequestPost({ request, env, data }) {
         raw_url: rawUrl,
         view_url: viewUrl,
         id: id,
-        is_encrypted: is_encrypted
+        is_encrypted: is_encrypted,
+        encryption_mode
     }), { headers: { 'Content-Type': 'application/json' } });
 }

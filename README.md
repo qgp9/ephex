@@ -35,6 +35,10 @@ The deployed Worker can keep the existing `ephex` runtime/service name unless an
    ```bash
    mise run db:init
    ```
+   If your local DB already exists, apply the encryption-mode migration:
+   ```bash
+   mise run db:migrate-local
+   ```
 4. Start the Worker locally:
    ```bash
    mise run dev
@@ -53,6 +57,10 @@ Wrangler logs and cache are written to workspace-local `.tmp-config/` and `.tmp-
    ```bash
    mise run db:remote
    ```
+   If the database already exists, apply the encryption-mode migration:
+   ```bash
+   mise run db:migrate-remote
+   ```
 4. Set the JWT secret:
    ```bash
    wrangler secret put JWT_SECRET
@@ -70,11 +78,58 @@ curl -F "image=@your_file.png" \
 ```
 
 ## CLI Download
-Plain images can be downloaded directly with `curl -O`. Encrypted links require the helper script so the payload can be decrypted with the `#key` fragment.
+Plain images can be downloaded directly with `curl -O`.
+
+Symmetric encrypted images use the `#key` fragment:
 
 ```bash
 curl -O "https://your-worker-domain/img/<id>.png"
 
 node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc#<key>"
 node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc#<key>" ./restored.png
+```
+
+Public-key encrypted images use the wrapped AES key stored in response headers. The private key stays on your machine:
+
+```bash
+node bin/ephex-download.js --private-key ~/.config/ephex/private.pem "https://your-worker-domain/img/<id>.enc"
+node bin/ephex-download.js --private-key ~/.config/ephex/private.pem "https://your-worker-domain/img/<id>.enc" ./restored.png
+```
+
+You can also provide the private key path via environment variable or `.env`:
+
+```bash
+EPHEX_PRIVATE_KEY=~/.config/ephex/private.pem node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc"
+```
+
+```bash
+echo 'EPHEX_PRIVATE_KEY=~/.config/ephex/private.pem' >> .env
+node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc"
+```
+
+Priority order is:
+1. `--private-key`
+2. `EPHEX_PRIVATE_KEY`
+3. `.env` `EPHEX_PRIVATE_KEY`
+
+## RSA Key Generation
+Public-key uploads expect an RSA public key in PEM format.
+
+Generate a 4096-bit private key:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out ephex-private.pem
+```
+
+Extract the matching public key:
+
+```bash
+openssl rsa -pubout -in ephex-private.pem -out ephex-public.pem
+```
+
+Use the contents of `ephex-public.pem` in the `Public Key (PEM)` profile field.
+Keep `ephex-private.pem` on the machine that will run:
+
+```bash
+node bin/ephex-download.js --private-key ./ephex-private.pem "https://your-worker-domain/img/<id>.enc"
 ```

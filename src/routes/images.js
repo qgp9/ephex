@@ -14,10 +14,13 @@ export async function onRequestGet({ request, env, data }) {
     const base = url.origin;
 
     images.forEach(img => {
+        img.encryption_mode = img.encryption_mode || (img.is_encrypted ? 'symmetric' : 'plain');
         const originalName = img.original_name || 'image';
         const originalExt = originalName.includes('.') ? originalName.split('.').pop().toLowerCase() : 'png';
-        const rawExt = img.is_encrypted ? 'enc' : originalExt;
-        img.view_url = img.is_encrypted ? `${base}/?v=${img.id}` : `${base}/?id=${img.id}`;
+        const rawExt = img.encryption_mode === 'plain' ? originalExt : 'enc';
+        img.view_url = img.encryption_mode === 'plain'
+            ? `${base}/?id=${img.id}`
+            : (img.encryption_mode === 'symmetric' ? `${base}/?v=${img.id}` : '');
         img.url = `${base}/img/${img.id}.${rawExt}`;
         img.raw_url = img.url;
     });

@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS images (
     max_downloads INTEGER,
     current_downloads INTEGER DEFAULT 0,
     is_encrypted INTEGER DEFAULT 0,
+    encryption_mode TEXT DEFAULT 'plain',
+    encrypted_key TEXT,
+    key_algorithm TEXT,
     created_at DATETIME DEFAULT (datetime('now')),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
