@@ -6,13 +6,14 @@ Secure, serverless image sharing built on Cloudflare Workers, D1, and R2.
 
 `ephex-server` is the backend used by the `ephex` macOS app for image upload and hosted asset delivery.
 
+Use [`.env.example`](/Users/beomsu/wrkp/ephex/ephex-server/.env.example) as a starting point for CLI helper environment defaults.
+
 ## Stack
 - `public/`: static frontend assets
 - `src/worker.js`: Worker entry and route adapter
 - `src/routes/`: API route handlers
 - `src/middleware/`: request middleware
 - `src/lib/`: shared auth and crypto utilities
-- `ephex-php/`: archived PHP version
 - `schema.sql`: D1 schema
 - `wrangler.toml`: Cloudflare Workers configuration
 
