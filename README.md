@@ -1,4 +1,4 @@
-# ephex-server ✦
+# ephex-server (WIP) ✦
 
 [![Built with Codex](https://img.shields.io/badge/Built%20with-Codex-0A0A0A?style=for-the-badge)](https://openai.com/codex)
 
