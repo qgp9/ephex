@@ -1,13 +1,21 @@
 #!/usr/bin/env node
 
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { createPrivateKey, privateDecrypt, constants, webcrypto } from "node:crypto";
 
 function printUsage() {
   console.error("Usage: ephex-download [--private-key /path/to/private.pem] <url> [output-file]");
   console.error("Supports plain, symmetric-encrypted, and public-key-encrypted raw links.");
+}
+
+function expandHome(inputPath) {
+  if (!inputPath) return "";
+  if (inputPath === "~") return os.homedir();
+  if (inputPath.startsWith("~/")) return path.join(os.homedir(), inputPath.slice(2));
+  return inputPath;
 }
 
 function decodeBase64Url(input) {
@@ -37,11 +45,20 @@ function parseDotEnv(contents) {
   return env;
 }
 
-function loadDotEnvPrivateKeyPath() {
+function loadDotEnvConfig() {
   const envPath = path.resolve(process.cwd(), ".env");
-  if (!fs.existsSync(envPath)) return "";
-  const parsed = parseDotEnv(fs.readFileSync(envPath, "utf8"));
-  return parsed.EPHEX_PRIVATE_KEY || "";
+  if (!fs.existsSync(envPath)) return {};
+  return parseDotEnv(fs.readFileSync(envPath, "utf8"));
+}
+
+async function validatePrivateKeyPermissions(privateKeyPath) {
+  if (process.platform === "win32") return;
+
+  const fileStat = await stat(privateKeyPath);
+  const mode = fileStat.mode & 0o777;
+  if ((mode & 0o077) !== 0) {
+    throw new Error(`Private key permissions are too open (${mode.toString(8)}). Run: chmod 600 ${privateKeyPath}`);
+  }
 }
 
 function parseContentDisposition(header) {
@@ -153,13 +170,15 @@ function inferFilename(fetchUrl, response, explicitOutput) {
 async function main() {
   const args = [...process.argv.slice(2)];
   let privateKeyPath = "";
+  const dotEnv = loadDotEnvConfig();
 
   if (args[0] === "--private-key") {
     privateKeyPath = args[1] || "";
     args.splice(0, 2);
   }
 
-  privateKeyPath = privateKeyPath || process.env.EPHEX_PRIVATE_KEY || loadDotEnvPrivateKeyPath();
+  privateKeyPath = expandHome(privateKeyPath || process.env.EPHEX_PRIVATE_KEY || dotEnv.EPHEX_PRIVATE_KEY || "");
+  const defaultDownloadDir = expandHome(process.env.EPHEX_DOWNLOAD_DIR || dotEnv.EPHEX_DOWNLOAD_DIR || "");
 
   const [inputUrl, outputFile] = args;
 
@@ -174,7 +193,20 @@ async function main() {
     throw new Error(`Download failed: ${response.status} ${response.statusText}`);
   }
 
-  const outputPath = inferFilename(fetchUrl, response, outputFile ? path.resolve(process.cwd(), outputFile) : null);
+  if (privateKeyPath) {
+    await validatePrivateKeyPermissions(privateKeyPath);
+  }
+
+  let explicitOutputPath = null;
+  if (outputFile) {
+    explicitOutputPath = path.resolve(process.cwd(), outputFile);
+  }
+
+  let outputPath = inferFilename(fetchUrl, response, explicitOutputPath);
+  if (!explicitOutputPath && defaultDownloadDir) {
+    await mkdir(defaultDownloadDir, { recursive: true });
+    outputPath = path.resolve(defaultDownloadDir, path.basename(outputPath));
+  }
   const payload = Buffer.from(await response.arrayBuffer());
   const encryptionMode = response.headers.get("x-ephex-encryption-mode") || (encryptedKey ? "symmetric" : "plain");
   const wrappedKey = response.headers.get("x-ephex-encrypted-key") || "";

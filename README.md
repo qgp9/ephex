@@ -112,6 +112,19 @@ Priority order is:
 2. `EPHEX_PRIVATE_KEY`
 3. `.env` `EPHEX_PRIVATE_KEY`
 
+You can set a default download directory for files saved without an explicit output path:
+
+```bash
+EPHEX_DOWNLOAD_DIR=~/Downloads/ephex node bin/ephex-download.js "https://your-worker-domain/img/<id>.png"
+```
+
+```bash
+echo 'EPHEX_DOWNLOAD_DIR=~/Downloads/ephex' >> .env
+node bin/ephex-download.js "https://your-worker-domain/img/<id>.png"
+```
+
+If the directory does not exist, the helper creates it automatically.
+
 ## RSA Key Generation
 Public-key uploads expect an RSA public key in PEM format.
 
@@ -132,4 +145,10 @@ Keep `ephex-private.pem` on the machine that will run:
 
 ```bash
 node bin/ephex-download.js --private-key ./ephex-private.pem "https://your-worker-domain/img/<id>.enc"
+```
+
+On macOS/Linux, private key permissions must be restricted. If needed:
+
+```bash
+chmod 600 ephex-private.pem
 ```
