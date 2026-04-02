@@ -36,7 +36,7 @@ export async function onRequest(context) {
     }
 
     // 2. Allow access to public routes even if unauthenticated
-    if (url.pathname === '/api/login' || url.pathname === '/api/logout' || url.pathname === '/api/profile' || url.pathname.startsWith('/api/raw/')) {
+    if (url.pathname === '/api/login' || url.pathname === '/api/logout' || url.pathname === '/api/profile' || url.pathname.startsWith('/api/raw/') || url.pathname.startsWith('/img/')) {
         return await context.next();
     }
     

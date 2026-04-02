@@ -39,6 +39,13 @@ function resolveDownloadTarget(inputUrl) {
   const url = new URL(inputUrl);
   const encryptedKey = url.hash ? url.hash.slice(1) : null;
 
+  if (url.pathname.startsWith("/img/")) {
+    const lastSegment = url.pathname.split("/").pop() || "";
+    if (lastSegment.includes(".")) {
+      return { fetchUrl: new URL(url.origin + url.pathname), encryptedKey };
+    }
+  }
+
   if (url.pathname.startsWith("/api/raw/")) {
     return { fetchUrl: new URL(url.origin + url.pathname), encryptedKey };
   }

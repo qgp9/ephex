@@ -30,8 +30,8 @@ export async function onRequestPost({ request, env, data }) {
         .run();
 
     const url = new URL(request.url);
-    const encodedName = encodeURIComponent(image.name || 'image');
-    const rawUrl = `${url.origin}/api/raw/${id}/${encodedName}`;
+    const rawExt = is_encrypted ? 'enc' : ext.toLowerCase();
+    const rawUrl = `${url.origin}/img/${id}.${rawExt}`;
     const viewUrl = is_encrypted ? `${url.origin}/?v=${id}` : `${url.origin}/?id=${id}`;
 
     return new Response(JSON.stringify({
