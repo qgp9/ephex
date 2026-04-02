@@ -55,9 +55,15 @@ function parseDotEnv(contents) {
 }
 
 function loadDotEnvConfig() {
-  const envPath = path.resolve(process.cwd(), ".env");
-  if (!fs.existsSync(envPath)) return {};
-  return parseDotEnv(fs.readFileSync(envPath, "utf8"));
+  const envPaths = [
+    path.resolve(process.cwd(), ".env"),
+    path.join(os.homedir(), ".config", "ephex", "env"),
+  ];
+
+  return envPaths.reduce((acc, envPath) => {
+    if (!fs.existsSync(envPath)) return acc;
+    return { ...acc, ...parseDotEnv(fs.readFileSync(envPath, "utf8")) };
+  }, {});
 }
 
 async function validatePrivateKeyPermissions(privateKeyPath) {

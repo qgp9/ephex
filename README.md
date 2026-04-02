@@ -96,7 +96,7 @@ node bin/ephex-download.js --private-key ~/.config/ephex/private.pem "https://yo
 node bin/ephex-download.js --private-key ~/.config/ephex/private.pem "https://your-worker-domain/img/<id>.enc" ./restored.png
 ```
 
-You can also provide the private key path via environment variable or `.env`:
+You can also provide the private key path via environment variable, project `.env`, or `~/.config/ephex/env`:
 
 ```bash
 EPHEX_PRIVATE_KEY=~/.config/ephex/private.pem node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc"
@@ -107,10 +107,21 @@ echo 'EPHEX_PRIVATE_KEY=~/.config/ephex/private.pem' >> .env
 node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc"
 ```
 
+```bash
+mkdir -p ~/.config/ephex
+cat > ~/.config/ephex/env <<'EOF'
+EPHEX_PRIVATE_KEY=~/.config/ephex/private.pem
+EPHEX_DOWNLOAD_DIR=~/Downloads/ephex
+EPHEX_OVERWRITE_MODE=suffix
+EOF
+node bin/ephex-download.js "https://your-worker-domain/img/<id>.enc"
+```
+
 Priority order is:
 1. `--private-key`
 2. `EPHEX_PRIVATE_KEY`
-3. `.env` `EPHEX_PRIVATE_KEY`
+3. `./.env` `EPHEX_PRIVATE_KEY`
+4. `~/.config/ephex/env` `EPHEX_PRIVATE_KEY`
 
 You can set a default download directory for files saved without an explicit output path:
 
@@ -120,6 +131,11 @@ EPHEX_DOWNLOAD_DIR=~/Downloads/ephex node bin/ephex-download.js "https://your-wo
 
 ```bash
 echo 'EPHEX_DOWNLOAD_DIR=~/Downloads/ephex' >> .env
+node bin/ephex-download.js "https://your-worker-domain/img/<id>.png"
+```
+
+```bash
+echo 'EPHEX_DOWNLOAD_DIR=~/Downloads/ephex' >> ~/.config/ephex/env
 node bin/ephex-download.js "https://your-worker-domain/img/<id>.png"
 ```
 
